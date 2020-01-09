@@ -19,7 +19,8 @@ PSTestRun <-
            ncores = 1,
            simultaneous=F,
            global_alpha=0.05,
-           return_rho_vals=F) {
+           return_rho_vals=F,
+           return_plots=T) {
     #### proc_dat is the processed data from PSTestInit.
     # Must be a list containing elements type, discrete, observed_locations and observed_times if neccessary
     #### formula is a formula in the R language describing the model to be fitted by spatstat
@@ -56,10 +57,24 @@ PSTestRun <-
     }
 
     # convert latent_effect into an im file
-    if (class(latent_effect) != 'im')
+    if (class(latent_effect) != 'im' & proc_dat$type == 'spatial')
     {
       latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
       latent_effect <- as(latent_converted, 'im')
+    }
+
+    # Check all covariates are in correct format
+    if(!is.null(covariates) & proc_dat$type == 'spatial')
+    {
+      for(cov_ind in 1:length(covariates))
+      {
+        # convert latent_effect into an im file
+        if (class(covariates[[cov_ind]]) != 'im' & class(covariates[[cov_ind]]) != 'function')
+        {
+          cov_converted <- as(covariates[[cov_ind]], 'SpatialGridDataFrame')
+          covariates[[cov_ind]] <- as(cov_converted, 'im')
+        }
+      }
     }
 
     if (!(PS %in% c('positive', 'negative', 'either'))) {
@@ -92,6 +107,11 @@ PSTestRun <-
     if(parallel==T)
     {
       doParallel::registerDoParallel(cores=ncores)
+    }
+
+    if(residual_tests == T & simultaneous == T)
+    {
+      stop('The package does not yet compute simultaneous residual tests. Change the argument residual_tests to F')
     }
 
     if (type == 'spatial')
@@ -155,7 +175,7 @@ PSTestRun <-
         fit <-
           suppressWarnings( spatstat::ppm(
             proc_dat$observed_locations,
-            formula = formula,
+            trend = formula,
             interaction = interaction,
             covariates = covariates_full
           ) )
@@ -167,7 +187,7 @@ PSTestRun <-
           fit_hpp <-
             suppressWarnings( spatstat::ppm(
               proc_dat$observed_locations,
-              formula = ~ 1,
+              trend = ~ 1,
               interaction = NULL,
               covariates = covariates_full
             ) )
@@ -176,7 +196,7 @@ PSTestRun <-
           fit <-
             suppressWarnings( spatstat::ppm(
               proc_dat$observed_locations,
-              formula = formula,
+              trend = formula,
               interaction = interaction,
               covariates = covariates_full
             ) )
@@ -336,8 +356,8 @@ PSTestRun <-
         ## Fit the Bernoulli model
         fit <-
           mgcv::gam(formula = formula,
-              family = binomial,
-              data = covariates_full)
+                    family = binomial,
+                    data = covariates_full)
 
         ## Estimate the probabilities of selection for each discrete spatial unit
         fit_probs <-
@@ -467,7 +487,7 @@ PSTestRun <-
             fit_hpp_MC <-
               suppressWarnings( spatstat::ppm(
                 sim_ppp_mod,
-                formula = ~ 1,
+                trend = ~ 1,
                 interaction = NULL,
                 covariates = covariates_full
               ) )
@@ -476,7 +496,7 @@ PSTestRun <-
             fit_MC <-
               suppressWarnings( spatstat::ppm(
                 sim_ppp_mod,
-                formula = formula,
+                trend = formula,
                 interaction = interaction,
                 covariates = covariates_full
               ) )
@@ -704,7 +724,7 @@ PSTestRun <-
                                fit_hpp_MC <-
                                  suppressWarnings( spatstat::ppm(
                                    sim_ppp_mod,
-                                   formula = ~ 1,
+                                   trend = ~ 1,
                                    interaction = NULL,
                                    covariates = covariates_full
                                  ) )
@@ -713,7 +733,7 @@ PSTestRun <-
                                fit_MC <-
                                  suppressWarnings( spatstat::ppm(
                                    sim_ppp_mod,
-                                   formula = formula,
+                                   trend = formula,
                                    interaction = interaction,
                                    covariates = covariates_full
                                  ) )
@@ -905,7 +925,7 @@ PSTestRun <-
           crit_deviance <- sort(apply(rho_vals_MC_Iter[,1,],c(1),FUN=function(x){return(max(abs(x)))}),
                                 decreasing = T)[M_rank]
           # which NN values lies outside of the global envelope?
-          global_test <- abs(result[1,]) >  crit_deviance
+          global_test <- abs(result) >  crit_deviance
 
           if(sum(global_test) > 0){print(paste0('The simultaneous KNN rank correlation test rejects the null hypothesis at the significance level of ',M_rank/(1+M)))}
           if(sum(global_test) == 0){print(paste0('The simultaneous KNN rank correlation test fails to reject the null hypothesis at the significance level of ',M_rank/(1+M)))}
@@ -913,18 +933,23 @@ PSTestRun <-
           plot_band_NN = data.frame(x = 1:no_nn,
                                     ymin = rep(c(-crit_deviance),no_nn),
                                     ymax=rep(crit_deviance, no_nn),
-                                    y=result[1,])
+                                    y=result)
 
-          plot_NN <- ggplot(plot_band_NN, aes(x=x,y=y,ymax=ymax,ymin=ymin)) +
-            geom_line(colour='blue') +
-            geom_ribbon(alpha=0.2) +
-            ylim(c(-crit_deviance-0.05, crit_deviance+0.05)) +
-            xlab('K Nearest Neighbours') +
-            ylab('Rank Correlation') +
-            ggtitle('Rank correlations between the latent field and the K-NN distance',
-                    subtitle='The Monte Carlo global envelope is shown as a greyscale band')
+          plot_NN <- NULL
+          if( return_plots==T )
+          {
+            plot_NN <- ggplot(plot_band_NN, aes(x=x,y=y,ymax=ymax,ymin=ymin)) +
+              geom_line(colour='blue') +
+              geom_ribbon(alpha=0.2) +
+              ylim(c(min(-crit_deviance-0.05, min(result)), max(crit_deviance+0.05,max(result)))) +
+              xlab('K Nearest Neighbours') +
+              ylab('Rank Correlation') +
+              ggtitle('Rank correlations between the latent field and the K-NN distance',
+                      subtitle='The Monte Carlo global envelope is shown as a greyscale band')
 
-          print(plot_NN)
+            print(plot_NN)
+          }
+
         }
 
         if(return_rho_vals == F)
@@ -966,6 +991,28 @@ PSTestRun <-
       # Is the latent effect fixed across time, or dynamic
       dynamic_latent <- class(latent_effect) == 'list'
 
+      # Convert the latent effects to 'im' format
+      if(dynamic_latent == T)
+      {
+        for(l_ind in 1:length(latent_effect))
+        {
+          temp_latent_effect <- latent_effect[[l_ind]]
+          if (class(temp_latent_effect) != 'im')
+          {
+            latent_converted <- as(temp_latent_effect, 'SpatialGridDataFrame')
+            latent_effect[[l_ind]] <- as(latent_converted, 'im')
+          }
+        }
+
+      }
+      if(dynamic_latent == F)
+      {
+        if (class(latent_effect) != 'im')
+        {
+          latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
+          latent_effect <- as(latent_converted, 'im')
+        }
+      }
       # loop over the unique times (possibly in parallel)
       #browser()
       if(simultaneous==F)
@@ -979,8 +1026,8 @@ PSTestRun <-
 
       if(simultaneous==T)
       {
-        test_rho_time <- array(0, dim = c(length(unique_observed_times), 1, no_nn))
-        rho_vals_time <- array(0, dim = c(M, length(unique_observed_times), 1, no_nn))
+        test_rho_time <- array(0, dim = c(length(unique_observed_times),no_nn))
+        rho_vals_time <- array(0, dim = c(M, length(unique_observed_times),no_nn))
         if(residual_tests==T & discrete==F)
         {
           test_rho_time <- array(0, dim = c(length(unique_observed_times), 3, no_nn))
@@ -998,11 +1045,32 @@ PSTestRun <-
         subset_proc_dat$observed_locations <- subset_proc_dat$observed_locations[observed_times==time]
 
         covariates_subset <- covariates
-        if(dynamic_covs==T)
+        if(is.null(covariates)){covariates_subset <- NULL}
+        if(dynamic_covs==T & !is.null(covariates_subset))
         {
           covariates_subset <- covariates[[paste(time)]]
+          for(cov_ind in 1:length(covariates_subset))
+          {
+            # convert latent_effect into an im file
+            if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
+            {
+              cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
+              covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
+            }
+          }
         }
-
+        if(dynamic_covs==F & !is.null(covariates_subset))
+        {
+          for(cov_ind in 1:length(covariates_subset))
+          {
+            # convert latent_effect into an im file
+            if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
+            {
+              cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
+              covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
+            }
+          }
+        }
         latent_subset <- latent_effect
         if(dynamic_latent==T)
         {
@@ -1014,19 +1082,21 @@ PSTestRun <-
         {
           p_vals_time[count,,] <- PSTestRun(proc_dat = subset_proc_dat, formula = formula, interaction = interaction,
                                             latent_effect = latent_subset,
+                                            covariates = covariates_subset,
                                             residual_tests=residual_tests, M=M, no_nn = no_nn,
                                             parallel = parallel, ncores=ncores)
         }
         if(simultaneous == T)
         {
           test_obj <- PSTestRun(proc_dat = subset_proc_dat, formula = formula, interaction = interaction,
-                             latent_effect = latent_subset,
-                             residual_tests=residual_tests, M=M, no_nn = no_nn,
-                             parallel = parallel, ncores=ncores,
-                             simultaneous = T, return_rho_vals = T)
+                                latent_effect = latent_subset,
+                                covariates = covariates_subset,
+                                residual_tests=residual_tests, M=M, no_nn = no_nn,
+                                parallel = parallel, ncores=ncores,
+                                simultaneous = T, return_rho_vals = T)
           #browser()
-          rho_vals_time[,count,,] <- test_obj$rho_vals_MC_Iter
-          test_rho_time[count,,] <- test_obj$result
+          rho_vals_time[,count,] <- test_obj$rho_vals_MC_Iter
+          test_rho_time[count,] <- test_obj$result
         }
 
         count <- count+1
@@ -1039,31 +1109,35 @@ PSTestRun <-
       {
         M_rank <- floor( (1+M)*global_alpha )
         if(M_rank != (1+M)*global_alpha){print('The true significance level of the global test is less than specified')}
-        crit_deviance <- sort(apply(rho_vals_time[,,1,],c(1),FUN=function(x){return(max(abs(x)))}),
+        crit_deviance <- sort(apply(rho_vals_time[,,],c(1),FUN=function(x){return(max(abs(x)))}),
                               decreasing = T)[M_rank]
         # which NN values lies outside of the global envelope?
-        global_test <- abs(test_rho_time[,1,]) >  crit_deviance
+        global_test <- abs(test_rho_time[,]) >  crit_deviance
 
         if(sum(global_test) > 0){print(paste0('The simultaneous KNN rank correlation test rejects the null hypothesis for at least one time period at the significance level of ',M_rank/(1+M)))}
         if(sum(global_test) == 0){print(paste0('The simultaneous KNN rank correlation test fails to reject the null hypothesis at all time periods at the significance level of ',M_rank/(1+M)))}
 
         plot_band_NN = data.frame(NN = rep(1:no_nn, each=length(unique_observed_times)),
                                   time = rep(1:length(unique_observed_times), times=no_nn),
-                                  rho=c(test_rho_time[,1,]),
-                                  significant=as.numeric(abs(c(test_rho_time[,1,]))>abs(crit_deviance)))
+                                  rho=c(test_rho_time[,]),
+                                  significant=as.numeric(abs(c(test_rho_time[,]))>abs(crit_deviance)))
 
-        plot_NN <- ggplot(plot_band_NN, aes(x=time, y=NN, fill=rho, alpha=significant)) +
-          geom_raster() + scale_x_discrete('Time', 1:no_nn, as.character(1:no_nn), 1:no_nn) +
-          scale_fill_viridis_c(begin=0.1, end=1, option = 'B') +
-          scale_alpha_continuous(name='significant',range=c(0,1),breaks=c(0,1),labels=c('no','yes'), limits=c(0,1)) +
-          xlab('Time') +
-          ylab('Nearest Neigbours K') +
-          ggtitle('Rank correlations between latent field and the K-NN distances vs. time and K',
-                   subtitle = 'Only values of the tests falling outside the global envelope are shown') +
-          annotate("rect", xmin = plot_band_NN$time-0.25, xmax = plot_band_NN$time+0.25, ymin = plot_band_NN$NN-0.25, ymax = plot_band_NN$NN+0.25, colour='white', alpha=1, fill='white') +
-          annotate("text", x = plot_band_NN$time, y = plot_band_NN$NN, label = round(plot_band_NN$rho,2))
+        plot_NN <- NULL
+        if( return_plots==T )
+        {
+          plot_NN <- ggplot(plot_band_NN, aes(x=time, y=NN, fill=rho, alpha=significant)) +
+            geom_raster() + scale_x_discrete('Time', 1:no_nn, as.character(1:no_nn), 1:no_nn) +
+            scale_fill_viridis_c(begin=0.1, end=1, option = 'B') +
+            scale_alpha_continuous(name='significant',range=c(0,1),breaks=c(0,1),labels=c('no','yes'), limits=c(0,1)) +
+            xlab('Time') +
+            ylab('Nearest Neigbours K') +
+            ggtitle('Rank correlations between latent field and the K-NN distances vs. time and K',
+                    subtitle = 'Only values of the tests falling outside the global envelope are shown') +
+            annotate("rect", xmin = plot_band_NN$time-0.25, xmax = plot_band_NN$time+0.25, ymin = plot_band_NN$NN-0.25, ymax = plot_band_NN$NN+0.25, colour='white', alpha=1, fill='white') +
+            annotate("text", x = plot_band_NN$time, y = plot_band_NN$NN, label = round(plot_band_NN$rho,2))
 
-        print(plot_NN)
+          print(plot_NN)
+        }
 
         return(list(test_rho = test_rho_time,
                     plot_df = plot_band_NN,

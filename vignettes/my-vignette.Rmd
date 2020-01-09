@@ -1,0 +1,27 @@
+---
+title: "A Brief Guide to Using PStestR"
+author: "Joe Watson"
+date: "`.r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{A Brief Guide to Using PStestR}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+# Testing for Preferenital Sampling in Geostatistical Datasets
+
+## Data Preparation 
+
+Setting up the data is made simple with the helper function PSTestInit. This function takes as arguments:
+
+* type - this takes a character string. For geostatistical data, simply set type = 'spatial' 
+* discrete - this takes a logical value. Here, as we are in the geostatistical (i.e. point-referenced) setting we set discrete = F
+* positions - this takes either an object of class ppp or else it takes a data.frame with named values x and y. These give the coordinates of the observed points
+* poly - this takes a polygon-style object defining the boundaries of the study region. This can be of class owin (from the spatstat package), SpatialPolygons (from the sp package) or sf (from the sf package).
+
+# Testing for Preferenital Sampling in Continuous Spatio-temporal Datasets
+
+# Testing for Preferenital Sampling in Discrete Spatial Datasets
+
+# Testing for Preferenital Sampling in Discrete Spatio-temporal Datasets

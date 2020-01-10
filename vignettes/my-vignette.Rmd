@@ -9,19 +9,234 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-# Testing for Preferenital Sampling in Geostatistical Datasets
+## Testing for Preferential Sampling in Geostatistical Datasets
 
-## Data Preparation 
+### Data Preparation 
 
-Setting up the data is made simple with the helper function PSTestInit. This function takes as arguments:
+Setting up the data is made simple with the helper function PSTestInit. For geostatistical data, this function takes as arguments:
 
-* type - this takes a character string. For geostatistical data, simply set type = 'spatial' 
-* discrete - this takes a logical value. Here, as we are in the geostatistical (i.e. point-referenced) setting we set discrete = F
-* positions - this takes either an object of class ppp or else it takes a data.frame with named values x and y. These give the coordinates of the observed points
-* poly - this takes a polygon-style object defining the boundaries of the study region. This can be of class owin (from the spatstat package), SpatialPolygons (from the sp package) or sf (from the sf package).
+* `type` - this takes a character string. For geostatistical data, simply set type = 'spatial' 
+* `discrete` - this takes a logical value. Here, as we are in the geostatistical (i.e. point-referenced) setting we set discrete = F
+* `positions` - this takes either an object of class ppp or else it takes a data.frame with named values x and y. These give the coordinates of the observed points
+* `poly` - this takes a polygon-style object defining the boundaries of the study region. This can be of class owin (from the spatstat package), SpatialPolygons (from the sp package) or sf (from the sf package).
 
-# Testing for Preferenital Sampling in Continuous Spatio-temporal Datasets
+In addition to the above, the following are additional (optional) arguments to call:
 
-# Testing for Preferenital Sampling in Discrete Spatial Datasets
+* `n_prediction` - this specifies the number of points to be generated within the study region. The coordinates of these points are returned for predicting the latent effect over, and for evaluating the covariates for later use with fitting the point processes.
+* `covariate_grids` - this is a list of covariate rasters, grids or pixels. They must be defined over the study region of interest and be in the same coordinate reference system or units (e.g. km or m) as the coordinates in the positions objects. These can be of class `SpatialPixelsDataFrame`, `SpatialGridDataFrame` (`sp` package), `sf` (`sf` package), or `im` (`spatstat` package).
 
-# Testing for Preferenital Sampling in Discrete Spatio-temporal Datasets
+```{r, include=FALSE}
+library(sp)
+library(maptools)
+library(rgeos)
+library(rgdal)
+library(spatstat)
+library(doParallel)
+library(foreach)
+library(ggplot2)
+library(mgcv)
+library(pstestr)
+
+# set seed
+set.seed(12345)
+
+## generate point process data
+
+# Define the intensity function
+int_function <- function(x,y){100*((x+y)^2)}
+
+spat_dat <- rpoispp(lambda = int_function, win=owin(c(0,1),c(0,1)))
+
+spat_dat$marks <- (rnorm(n=spat_dat$n ,mean=int_function(x=spat_dat$x, y=spat_dat$y), sd= 100) / 100 )
+
+spat_dat$marks <- spat_dat$marks - min(spat_dat$marks)
+
+st_dat <- rpoispp(int_function, win=owin(c(0,1),c(0,1)), nsim = 2)
+
+# define SpatialPolygon for the owin object (tests maptools loaded)
+window_poly <- as(owin(c(0,1),c(0,1)), 'SpatialPolygons')
+
+# Define SpatialPixels across window
+window_pixels <- makegrid(window_poly, n=10000)
+window_pixels <- SpatialPixels(points = SpatialPoints(as.matrix(window_pixels) ))
+
+#source('PSTestInit')
+```
+
+Let's show an example of how to initialise data, suitable for use with `PSTestInit`. Suppose that we have an object called `window_poly` of class `SpatialPolygons` defining our study region.  Suppose we also have a marked spatial point pattern of class `ppp` called `spat_dat`. The marks here correspond to noisy observations of some latent process which we aim to study. Unfortunately, however, it is feared that samples were preferentially sampled in regions of the study area where the process was expected to be highest. Thus we will show how one can test for this. 
+
+First, we plot the point pattern and the marks as a bubble plot:
+
+```{r, echo=TRUE, fig.width=5, fig.height=5}
+class(spat_dat)
+plot(spat_dat)
+class(window_poly)
+```
+
+Here, we see an increased sampling intensity in the top right hand corner of the study region (as defined by the square polygon). The size of the marks, as indicated by the radius of the plotted bubbles, are also larger in this region. This is clear evidence of positive preferential sampling.
+
+Now we move onto creating an object suitable for the `PSTestR` package by running `PSTestInit`. We specify that we want 10,000 points to be uniformly placed within the study region defined by window_poly. We will use these locations later for predicting our latent field/process and covariates over. 
+
+```{r, echo=T}
+test_spat_dat <- PSTestInit(type='spatial', discrete = F,     
+                            positions=spat_dat, poly=window_poly,   
+                            n_prediction = 10000)
+names(test_spat_dat)
+```
+
+The object `test_spat_dat` contains everything that is needed to fit the test. Of importance are the following two named objects within the `test_spat_dat`:
+
+* `prediction_df` is a data.frame object containing the x, y coordinates of each of the 10,000 points. This can be especially useful as a prediction data frame for estimating the latent effect and covariates over
+* `prediction_grid` is a `SpatialPixels` object containing with 10,000 pixel centroids equal to the coordinates found in `prediction_df`
+
+Once the desired covariates and latent effect(s) have been estimated or projected onto the 10,000 points, they can be appended to the `prediction_grid` as a `SpatialPixelsDataFrame`. This is a suitable file format for the test. 
+
+Returning to our example, for the time being we ignore the potential preferential sampling and fit a spatial regression model to the marks. We find a significant effect of a covariate called 'cov', and capture the residual spatial correlation with a Gaussian process. This Gaussian process is our estimate of the latent effect. Next, we evaluate the covariate and our estimated latent effect across the 10,000 points. We store these estimates in vectors `cov` and `latent_effect`. To convert `cov` and `latent_effect` to `SpatialPixelsDataFrame` objects, simply do the following:
+
+```{r}
+cov <- runif(10000)
+latent_effect <- int_function(x=test_spat_dat$prediction_df$x,
+                     y=test_spat_dat$prediction_df$y)
+cov2 <- latent_effect + rnorm(n=10000, mean = 0, sd=100)
+cov2 <- SpatialPixelsDataFrame(test_spat_dat$prediction_grid,
+                               data=data.frame(cov2=cov2))
+```
+
+```{r include=FALSE}
+layout(mat=matrix(c(1,2),nrow=1,ncol = 2))
+```
+
+
+```{r, echo=T}
+# cov1 and cov2 are numeric vectors of length 10,000
+cov <- SpatialPixelsDataFrame(test_spat_dat$prediction_grid,
+                               data=data.frame(cov=cov))
+latent_effect <- SpatialPixelsDataFrame(test_spat_dat$prediction_grid,
+                         data=data.frame(latent_effect=latent_effect))
+plot(cov)
+plot(latent_effect)
+```
+```{r include=FALSE}
+layout(mat=matrix(c(1),nrow=1,ncol = 1))
+```
+### Conducting the test
+
+Now we can run the test using the `PSTestRun` function. For geostatistical data, this takes arguments:
+
+* `proc_data` - this is the processed data, outputted from the `PSTestInit` function
+* `formula` - this is the formula specifying the trend for the point process model. For the inhomogeneous Poisson process, this specifies the intensity function
+* `interaction` - this is an object of `spatstat` class `interact` describing the point process interaction structure. It can also be a function that makes such an object, or `NULL` indicating that a Poisson process (stationary or nonstationary) should be fitted. The help files in the `spatstat` package provide more information.
+* `M` - specifies the number of Monte Carlo samples to take for the test
+* `no_nn` - specifies the maximum number of nearest neighbours to take distances over
+* `latent_effect` - specifies the latent_effect. This can be any of the classes allowed for the covariates (including `SpatialPixelsDataFrame`)
+* `simultaneous` - a logical stating whether the test should be computed with a simultaneous confidence band estimated. If set equal to `FALSE`, the pointwise tests are computed for each nearest neighbour number. Consequently, the tests suffer from issues of multiple testing and the significance level may be far higher than stated. If set equal to `TRUE`, the test does not suffer from the multiple testing problem, as the test is no longer pointwise.
+* `global_alpha` - when `simultaneous=TRUE`, this specifies the significance level for computing the simultaneous confidence band. This is equal to the significance level of the simultaneous test.
+
+In addition to the above arguments, for geostatistical data there are additional (optional) arguments that can be provided:
+
+* `residual_tests` - takes a logical value indicating if the kernel smoothed raw residual test should be computed. Note that this feature is experimental and should be used with care. When set to `TRUE`, the function will suffer performance drawbacks.
+* `parallel` - takes a logical value indicating whether or not the script should be run in parallel using the `foreach` and `DoParallel` packages. 
+* `ncores` - if `parallel=T`, this sets the number of cores to parallelize across.
+* `return_plots` - a logical argument specifying whether or not a plot is desired. 
+* `PS` - a character string specifying 'either' (default), 'positive' or 'negative'. This specifies the direction of preferential sampling, with 'either' specifying a two-sided alternative hypothesis.
+
+Now we show how to fit the test. First, we fit the pointwise tests without covariate `cov`. We only fit the nearest neighbour based test first. Here the formula is specified as ~ 1, and the interaction is set to `NULL` to indicate that a homogeneous poisson process is desired for capturing our sampling process under the null.
+
+```{r echo=T}
+spat_test_1 <- PSTestRun(test_spat_dat, formula = ~ 1, 
+                         interaction = NULL, 
+                         latent_effect = latent_effect,
+                         residual_tests=F, M=19, no_nn = 10,
+                         parallel = T, ncores=1,
+                         return_plots = F)
+
+spat_test_1
+```
+
+Here it is apparent that the pointwise tests reject the null hypothesis of no assocation between the latent effect and the intensity of the point pattern in favour of the alternative, that the intensity depends monotonically on the value of the latent effect. The test is able to reject the null at the 5% significance level with only 19 Monte Carlo simulations. Note that fitting multiple pointwise tests is problematic and may lead to a joint significance level that is likely far higher than specified. This is due to the problems of multiple testing.
+
+Next, we repeat the test, but this time compute a simultaneous confidence band by adding the argument `simultaneous = T`. This test will no longer suffer from the problem of multiple testing.
+
+```{r echo=T, fig.width=7, fig.height=5}
+spat_test_2 <- PSTestRun(test_spat_dat, formula = ~ 1, 
+                         interaction = NULL, 
+                         latent_effect = latent_effect,
+                         residual_tests=F, M=19, no_nn = 10,
+                         parallel = T, ncores=1,
+                         return_plots = T, simultaneous = T)
+
+spat_test_2$critical_deviance
+spat_test_2$global_test_NN
+spat_test_2$pointwise_tests
+
+```
+
+Here it is shown in the plot that the observed rank correlation lies outside the Monte Carlo global envelope (i.e. simultaneous confidence band) for all values of K nearest neighbours tested. Thus we reject the null hypothesis at the 5% level once again. The critical value of the test is returned as the named entry `critical_deviance`. If the absolute value of the observed rank correlation exceeds this value at any value of K, then the test is rejected. For convenience, the result of the test for each value of K is returned as the vector of logicals `global_test_NN`. A value of `TRUE` at *any* of the K values denotes the test is rejected. Finally, the empirical p-values of the pointwise tests are also computed, and are found in the entry `$pointwise_tests`.
+
+Now we repeat the same test, but this time include the covariate `cov`. To do this, we create a named list containing all the covariates we desire to include in our model. Then we add this list as an argument to the function `PSTestRun`. Finally, we add the desired covariates, in their desired functional form to the right hand side of the `formula` argument. Note that higher order terms and interactions can be added as per usual.
+
+```{r, echo=T, fig.width=7, fig.height=5}
+covariates_list <- list(cov = cov)
+
+spat_test_3 <- PSTestRun(test_spat_dat, formula = ~ cov, 
+                         interaction = NULL, 
+                         latent_effect = latent_effect,
+                         covariates = covariates_list,
+                         residual_tests=F, M=19, no_nn = 10,
+                         parallel = T, ncores=1,
+                         return_plots = T, simultaneous = T)
+
+spat_test_3$critical_deviance
+spat_test_3$global_test_NN
+spat_test_3$pointwise_tests
+```
+Thus, once again the test is rejected at the 5% significance level. Thus the covariate `cov` has not explained the preferential sampling.
+
+Finally, suppose after further research, a second covariate 'cov2' is found to be strongly associated with the marks. Furthermore there is a plausible reason for 'cov2' affecting the choice of sampling locations. We now also include this as a covariate `cov2` in the test.
+
+```{r, echo=T, fig.width=7, fig.height=5}
+covariates_list2 <- list(cov = cov,
+                        cov2=cov2)
+
+spat_test_4 <- PSTestRun(test_spat_dat, formula = ~ cov + cov2, 
+                         interaction = NULL, 
+                         latent_effect = latent_effect,
+                         covariates = covariates_list2,
+                         residual_tests=F, M=100, no_nn = 5,
+                         parallel = T, ncores=1,
+                         return_plots = T, simultaneous = T,
+                         global_alpha = 0.05)
+
+spat_test_4$critical_deviance
+spat_test_4$global_test_NN
+spat_test_4$pointwise_tests
+```
+
+Here, a set of seemingly conflicting results appear. On the one hand, the simultaneous test at the 5% significance level fails to reject the null hypothesis. This provides evidence that the covariate `cov2` has sufficiently explained away the preferential sampling. However, looking at the results from the pointwise tests, it is clear that the test would have been rejected at the 5% significance level for each value of K<5 tested. However, once again, the issue of multiple testing must be considered and thus the significance level of the pointwise tests are only valid if the value of K is chosen beforehand. This example does however provide insight into a fundamental property of this test; a single pointwise test can have a higher power to detect PS than the simultaneous test.
+
+## Testing for Preferenital Sampling in Continuous Spatio-temporal Datasets
+
+### Data Preparation 
+
+Next we give an example of how to test for preferential sampling in continuous spatio-temporal data. Following on from the previous example, suppose a follow-up study is performed with new 'sampling protocols'. Suppose the dataset appear as an object of class `ppp` called `spat_dat2`.
+
+```{r echo=FALSE, fig.width=5, fig.height=5}
+spat_dat2 <- rpoispp(lambda = 100, win=owin(c(0,1),c(0,1)))
+
+spat_dat2$marks <- (rnorm(n=spat_dat2$n ,mean=int_function(x=spat_dat2$x, y=spat_dat2$y), sd= 100) / 100 )
+
+spat_dat2$marks <- spat_dat2$marks - min(spat_dat2$marks)
+
+plot(spat_dat2)
+```
+
+
+This time, the sampling locations at which to record (noisy) values of the latent process under study appear more uniformly placed throughout the study region and without any clear associations between the intensity of the observation locations and the recorded values (the marks). The goal of this analysis is to see if the preferential sampling has indeed been removed from the new survey design.   
+
+First, we must format the data into the correct form required for the `PSTestR` package. This is achieved once again by the function `PSTestInit`. Along with the `positions` argument, a `times` argument is now also required for specifying which discrete time period each observation belongs to. Furthermore, the `covariates` and `formula` arguments may be unique for each time period, or fixed across all time periods. How to specify this is the focus of this section of the vignette.
+
+
+
+## Testing for Preferenital Sampling in Discrete Spatial Datasets
+
+## Testing for Preferenital Sampling in Discrete Spatio-temporal Datasets

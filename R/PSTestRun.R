@@ -1,3 +1,5 @@
+#' @export
+
 # PS test stage
 
 # Data should be preprocessed using PSTestInit.R
@@ -23,7 +25,7 @@ PSTestRun <-
            return_plots=T) {
     #### proc_dat is the processed data from PSTestInit.
     # Must be a list containing elements type, discrete, observed_locations and observed_times if neccessary
-    #### formula is a formula in the R language describing the model to be fitted by spatstat
+    #### formula is a formula in the R language describing the model to be fitted by spatstat. If spacetime, this can be a list of formulas - one per time.
     #### interaction is an object of spatstat class "interact" describing the point process interaction structure,
     # can also be a function that makes such an object, or NULL indicating that a Poisson process (stationary or nonstationary) should be fitted.
     #### M specifies the number of Monte Carlo samples to take
@@ -1077,10 +1079,19 @@ PSTestRun <-
           latent_subset <- latent_effect[[paste(time)]]
         }
 
+        # are the formulae unique per time period?
+        if(class(formula) == 'list')
+        {
+          formula_st <- formula[[paste(time)]]
+        }
+        if(class(formula) != 'list')
+        {
+          formula_st <- formula
+        }
         #browser()
         if(simultaneous == F)
         {
-          p_vals_time[count,,] <- PSTestRun(proc_dat = subset_proc_dat, formula = formula, interaction = interaction,
+          p_vals_time[count,,] <- PSTestRun(proc_dat = subset_proc_dat, formula = formula_st, interaction = interaction,
                                             latent_effect = latent_subset,
                                             covariates = covariates_subset,
                                             residual_tests=residual_tests, M=M, no_nn = no_nn,
@@ -1088,7 +1099,7 @@ PSTestRun <-
         }
         if(simultaneous == T)
         {
-          test_obj <- PSTestRun(proc_dat = subset_proc_dat, formula = formula, interaction = interaction,
+          test_obj <- PSTestRun(proc_dat = subset_proc_dat, formula = formula_st, interaction = interaction,
                                 latent_effect = latent_subset,
                                 covariates = covariates_subset,
                                 residual_tests=residual_tests, M=M, no_nn = no_nn,

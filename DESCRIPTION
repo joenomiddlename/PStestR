@@ -34,3 +34,4 @@ Encoding: UTF-8
 LazyData: true
 URL: https://github.com/joenomiddlename/pstestr
 BugReports: https://github.com/joenomiddlename/pstestr/issues
+RoxygenNote: 6.1.1

@@ -1,3 +1,5 @@
+#' @export
+
 # Data preparation stage
 
 PSTestInit <- function(type, discrete, positions=NULL, times=NULL,

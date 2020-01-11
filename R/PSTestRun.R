@@ -22,7 +22,8 @@ PSTestRun <-
            simultaneous=F,
            global_alpha=0.05,
            return_rho_vals=F,
-           return_plots=T) {
+           return_plots=T,
+           return_model=F) {
     #### proc_dat is the processed data from PSTestInit.
     # Must be a list containing elements type, discrete, observed_locations and observed_times if neccessary
     #### formula is a formula in the R language describing the model to be fitted by spatstat. If spacetime, this can be a list of formulas - one per time.
@@ -43,6 +44,12 @@ PSTestRun <-
     #### residual_tests is a logical argument specifying if the rank correlation of the smoothed raw HPP and model residuals should be computed
     #### sigma and leaveoneout are additional arguments for the density.ppp function in spatstat.
     #### fix_n is a logical stating if the sample size should be fixed in the Monte Carlo samples to value observed in the data
+    #### parallel is a logical specifying if the code should be run in parallel
+    #### ncores specifies the number of cores to parallelize over if parallel=T
+    #### simultaneous is a logical specifying if the simultaneous test should be computed that corrects for multiple testing
+    #### global_alpha is a number between 0 and 1 specifying the significance level of the simultaneous test
+    #### return_plots is a logical stating if the ggplot object should be printed (if simultaneous = T)
+    #### return_model is a logical stating if the fitted model object from spatstat, or mgcv should be returned
 
     ## function argument checks
     if (sum(c('type', 'discrete', 'observed_locations') %in% names(proc_dat)) < 3)
@@ -182,6 +189,8 @@ PSTestRun <-
             covariates = covariates_full
           ) )
 
+        print(coef(summary(fit)))
+
         if (residual_tests == T & discrete == F)
         {
           # Fit homogeneous poisson process model
@@ -195,13 +204,13 @@ PSTestRun <-
             ) )
 
           ## Fit the inhomogeneous point process model
-          fit <-
-            suppressWarnings( spatstat::ppm(
-              proc_dat$observed_locations,
-              trend = formula,
-              interaction = interaction,
-              covariates = covariates_full
-            ) )
+          # fit <-
+          #   suppressWarnings( spatstat::ppm(
+          #     proc_dat$observed_locations,
+          #     trend = formula,
+          #     interaction = interaction,
+          #     covariates = covariates_full
+          #   ) )
 
           res_fit_hpp <- suppressWarnings( spatstat::residuals.ppm(fit_hpp) )
           res_smooth_hpp <-
@@ -360,6 +369,8 @@ PSTestRun <-
           mgcv::gam(formula = formula,
                     family = binomial,
                     data = covariates_full)
+
+        print(summary(fit)$p.table)
 
         ## Estimate the probabilities of selection for each discrete spatial unit
         fit_probs <-
@@ -841,7 +852,16 @@ PSTestRun <-
                                results[1, 2,] <- rho_rank_residual_hpp_MC
                                results[1, 3,] <- rho_rank_residual_MC
                              }
-                             return(results)
+                             if(return_model==T)
+                             {
+                               return(list(results=results,
+                                           model_fit=fit))
+                             }
+                             if(return_model!=T)
+                             {
+                               return(results)
+                             }
+
                            }
       }
 
@@ -956,22 +976,69 @@ PSTestRun <-
 
         if(return_rho_vals == F)
         {
-          return(list(global_test_NN = global_test,
-                      critical_deviance = crit_deviance,
-                      plot_NN = plot_NN,
-                      pointwise_tests = temp_rho) )
+          if(return_model==T)
+          {
+            return(list(global_test_NN = global_test,
+                        critical_deviance = crit_deviance,
+                        plot_NN = plot_NN,
+                        pointwise_empirical_pvalues = temp_rho,
+                        model_fit = fit) )
+          }
+          if(return_model!=T)
+          {
+            return(list(global_test_NN = global_test,
+                        critical_deviance = crit_deviance,
+                        plot_NN = plot_NN,
+                        pointwise_empirical_pvalues = temp_rho) )
+          }
         }
         if(return_rho_vals == T)
         {
-          return(list(rho_vals_MC_Iter = rho_vals_MC_Iter,
-                      result = result) )
-        }
+          if(return_model==T)
+          {
+            return(list(rho_vals_MC_Iter = rho_vals_MC_Iter,
+                        test_rho = result,
+                        model_fit = fit) )
+          }
+          if(return_model!=T)
+          {
+            return(list(rho_vals_MC_Iter = rho_vals_MC_Iter,
+                        test_rho = result) )
+          }
 
+        }
 
       }
       if(simultaneous==F)
       {
-        return(temp_rho)
+        if(return_rho_vals==T)
+        {
+          if(return_model==T)
+          {
+            return(list(pointwise_empirical_pvalues=temp_rho,
+                        model_fit=fit,
+                        Monte_Carlo_rho_values=rho_vals_MC_Iter,
+                        test_rho = result))
+          }
+          if(return_model!=T)
+          {
+            return(list(pointwise_empirical_pvalues=temp_rho,
+                        Monte_Carlo_rho_values=rho_vals_MC_Iter,
+                        test_rho = result))
+          }
+        }
+        if(return_rho_vals==F)
+        {
+          if(return_model==T)
+          {
+            return(list(pointwise_empirical_pvalues=temp_rho,
+                        model_fit=fit))
+          }
+          if(return_model!=T)
+          {
+            return(list(pointwise_empirical_pvalues=temp_rho))
+          }
+        }
       }
 
     }
@@ -1019,14 +1086,14 @@ PSTestRun <-
       #browser()
       if(simultaneous==F)
       {
-        p_vals_time <- array(0, dim = c(length(unique_observed_times), 1, no_nn))
+        pointwise_empirical_pvalues_time <- array(0, dim = c(length(unique_observed_times), 1, no_nn))
         if(residual_tests==T & discrete==F)
         {
-          p_vals_time <- array(0, dim = c(length(unique_observed_times), 3, no_nn))
+          pointwise_empirical_pvalues_time <- array(0, dim = c(length(unique_observed_times), 3, no_nn))
         }
       }
 
-      if(simultaneous==T)
+      if(simultaneous==T | return_rho_vals==T)
       {
         test_rho_time <- array(0, dim = c(length(unique_observed_times),no_nn))
         rho_vals_time <- array(0, dim = c(M, length(unique_observed_times),no_nn))
@@ -1035,6 +1102,11 @@ PSTestRun <-
           test_rho_time <- array(0, dim = c(length(unique_observed_times), 3, no_nn))
           rho_vals_time <- array(0, dim = c(M, length(unique_observed_times), 3, no_nn))
         }
+      }
+
+      if(return_model==T)
+      {
+        mod_list <- list()
       }
 
       count <- 1
@@ -1089,32 +1161,86 @@ PSTestRun <-
           formula_st <- formula
         }
         #browser()
-        if(simultaneous == F)
+        if(simultaneous == F & return_rho_vals==F)
         {
-          p_vals_time[count,,] <- PSTestRun(proc_dat = subset_proc_dat, formula = formula_st, interaction = interaction,
+          pointwise_empirical_pvalues_time[count,,] <- PSTestRun(proc_dat = subset_proc_dat, formula = formula_st, interaction = interaction,
                                             latent_effect = latent_subset,
                                             covariates = covariates_subset,
                                             residual_tests=residual_tests, M=M, no_nn = no_nn,
-                                            parallel = parallel, ncores=ncores)
+                                            parallel = parallel, ncores=ncores,
+                                            return_model = return_model)$pointwise_empirical_pvalues
         }
-        if(simultaneous == T)
+        if(simultaneous == T | return_rho_vals==T)
         {
           test_obj <- PSTestRun(proc_dat = subset_proc_dat, formula = formula_st, interaction = interaction,
                                 latent_effect = latent_subset,
                                 covariates = covariates_subset,
                                 residual_tests=residual_tests, M=M, no_nn = no_nn,
                                 parallel = parallel, ncores=ncores,
-                                simultaneous = T, return_rho_vals = T)
+                                simultaneous = T, return_rho_vals = T,
+                                return_model = return_model)
           #browser()
           rho_vals_time[,count,] <- test_obj$rho_vals_MC_Iter
-          test_rho_time[count,] <- test_obj$result
+          test_rho_time[count,] <- test_obj$test_rho
+
+          if(return_model==T)
+          {
+            mod_list[[count]] <- test_obj$model_fit
+          }
+
         }
 
         count <- count+1
       }
+
+      Monte_Carlo_rho_values <- NULL
+
+      if(return_rho_vals == T)
+      {
+        Monte_Carlo_rho_values <- rho_vals_time
+      }
+
+      if(return_rho_vals==F & simultaneous==F)
+      {
+        test_rho_time <- NULL
+      }
+
       if(simultaneous==F)
       {
-        return(p_vals_time)
+        if(residual_tests==T)
+        {
+          if(return_model==T)
+          {
+            return(list(pointwise_empirical_pvalues_time = pointwise_empirical_pvalues_time,
+                        model_fits = mod_list,
+                        test_rho = test_rho_time,
+                        Monte_Carlo_rho_values=Monte_Carlo_rho_values))
+          }
+          if(return_model!=T)
+          {
+            return(list(pointwise_empirical_pvalues_time=pointwise_empirical_pvalues_time,
+                        test_rho=test_rho_time,
+                        Monte_Carlo_rho_values=Monte_Carlo_rho_values))
+          }
+
+        }
+        if(residual_tests==F)
+        {
+          if(return_model==T)
+          {
+            return(list(pointwise_empirical_pvalues_time = pointwise_empirical_pvalues_time[,1,],
+                        test_rho=test_rho_time,
+                        model_fits = mod_list,
+                        Monte_Carlo_rho_values=Monte_Carlo_rho_values))
+          }
+          if(return_model!=T)
+          {
+            return(list(pointwise_empirical_pvalues_time=pointwise_empirical_pvalues_time[,1,],
+                        test_rho=test_rho_time,
+                        Monte_Carlo_rho_values=Monte_Carlo_rho_values))
+          }
+
+        }
       }
       if(simultaneous==T)
       {
@@ -1137,7 +1263,8 @@ PSTestRun <-
         if( return_plots==T )
         {
           plot_NN <- ggplot(plot_band_NN, aes(x=time, y=NN, fill=rho, alpha=significant)) +
-            geom_raster() + scale_x_discrete('Time', 1:no_nn, as.character(1:no_nn), 1:no_nn) +
+            geom_raster() + scale_x_continuous('Time', breaks=1:length(unique_observed_times), labels=as.character(unique_observed_times), limits=c(0,length(unique_observed_times)+1)) +
+            scale_y_continuous('Nearest Neigbours K', breaks=1:no_nn, labels=as.character(1:no_nn), limits=c(0,no_nn+1)) +
             scale_fill_viridis_c(begin=0.1, end=1, option = 'B') +
             scale_alpha_continuous(name='significant',range=c(0,1),breaks=c(0,1),labels=c('no','yes'), limits=c(0,1)) +
             xlab('Time') +
@@ -1150,11 +1277,26 @@ PSTestRun <-
           print(plot_NN)
         }
 
-        return(list(test_rho = test_rho_time,
-                    plot_df = plot_band_NN,
-                    plot_NN = plot_NN,
-                    global_test = global_test,
-                    critical_deviance = crit_deviance)  )
+        if(return_model==T)
+        {
+          return(list(test_rho = test_rho_time,
+                      plot_df = plot_band_NN,
+                      plot_NN = plot_NN,
+                      global_test = global_test,
+                      critical_deviance = crit_deviance,
+                      model_fits = mod_list,
+                      Monte_Carlo_rho_values=Monte_Carlo_rho_values)  )
+        }
+        if(return_model!=T)
+        {
+          return(list(test_rho = test_rho_time,
+                      plot_df = plot_band_NN,
+                      plot_NN = plot_NN,
+                      global_test = global_test,
+                      critical_deviance = crit_deviance,
+                      Monte_Carlo_rho_values=Monte_Carlo_rho_values)  )
+        }
+
       }
       # if(parallel == T)
       # {

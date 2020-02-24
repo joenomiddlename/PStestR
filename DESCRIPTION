@@ -2,7 +2,7 @@ Package: pstestr
 Type: Package
 Title: Monte Carlo Test for Preferential Sampling in Spatio-Temporal Data
 Version: 0.1.0
-Depends: R (>= 3.1.0) 
+Depends: R (>= 3.5.0) 
 Imports:
     maptools (>= 0.9-5),
     spatstat.data (>= 1.4-0),
@@ -18,7 +18,7 @@ Suggests:
     testthat(>= 2.1.1),
     knitr(>= 1.23)
 VignetteBuilder:
-    knitr(>= 1.23)
+    knitr
 Authors@R: person("Joe", "Watson", email = "joe.watson@stat.ubc.ca",
                   role = c("aut", "cre"))
 Description: This package performs a Monte Carlo test for preferential    

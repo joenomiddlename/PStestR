@@ -156,7 +156,8 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                   observed_locations = positions_converted,
                   discrete = T,
                   type = type,
-                  covariate_grids = covariate_grids))
+                  covariate_grids = covariate_grids,
+                  areal_poly_observations = areal_poly_observations))
     }
 
   }
@@ -269,7 +270,8 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                   observed_times = times,
                   discrete = T,
                   type = type,
-                  covariate_grids = covariate_grids))
+                  covariate_grids = covariate_grids,
+                  areal_poly_observations = areal_poly_observations))
     }
 
   }

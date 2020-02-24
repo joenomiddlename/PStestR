@@ -66,14 +66,14 @@ PSTestRun <-
     }
 
     # convert latent_effect into an im file
-    if (class(latent_effect) != 'im' & proc_dat$type == 'spatial')
+    if (class(latent_effect) != 'im' & proc_dat$type == 'spatial' & proc_dat$discrete == F)
     {
       latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
       latent_effect <- as(latent_converted, 'im')
     }
 
     # Check all covariates are in correct format
-    if(!is.null(covariates) & proc_dat$type == 'spatial')
+    if(!is.null(covariates) & proc_dat$type == 'spatial' & proc_dat$discrete == F)
     {
       for(cov_ind in 1:length(covariates))
       {
@@ -83,6 +83,13 @@ PSTestRun <-
           cov_converted <- as(covariates[[cov_ind]], 'SpatialGridDataFrame')
           covariates[[cov_ind]] <- as(cov_converted, 'im')
         }
+      }
+    }
+    if(!is.null(covariates) & proc_dat$type == 'spatial' & proc_dat$discrete == T)
+    {
+      if(class(covariates) != 'data.frame')
+      {
+        stop('When discrete==T, the covariates must be a data.frame object')
       }
     }
 
@@ -144,7 +151,15 @@ PSTestRun <-
 
       #browser()
       ## Evaluate the latent effect at the observed locations
-      latent_obs <- latent_effect[proc_dat$observed_locations]
+      if(discrete==T)
+      {
+        latent_obs <- latent_effect[proc_dat$areal_poly_observations]
+      }
+      if(discrete == F)
+      {
+        latent_obs <- latent_effect[proc_dat$observed_locations]
+      }
+
 
       ### rank the responses
       latent_obs_ranks <- rank(latent_obs)
@@ -344,14 +359,14 @@ PSTestRun <-
         ## add a binary indicator to state if the areal unit was selected
         covariates_full$R = 0
 
-        ind_poly <-
-          which(duplicated(rbind(
-            cbind(proc_dat$prediction_df$x, proc_dat$prediction_df$y),
-            cbind(
-              proc_dat$observed_locations$x,
-              proc_dat$observed_locations$y
-            )
-          ), fromLast = T)[1:length(proc_dat$prediction_df$x)])
+        ind_poly <- proc_dat$areal_poly_observations
+          # which(duplicated(rbind(
+          #   cbind(proc_dat$prediction_df$x, proc_dat$prediction_df$y),
+          #   cbind(
+          #     proc_dat$observed_locations$x,
+          #     proc_dat$observed_locations$y
+          #   )
+          # ), fromLast = T)[1:length(proc_dat$prediction_df$x)])
 
         #browser()
 
@@ -412,11 +427,11 @@ PSTestRun <-
             if (fix_n == F)
             {
               sim_ind <-
-                rbinom(
+                which(rbinom(
                   n = dim(covariates_full)[1],
                   prob = fit_probs,
                   size = 1
-                )
+                ) == 1)
               sim_ppp_mod <-
                 ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
@@ -465,7 +480,14 @@ PSTestRun <-
           }
 
           ## Evaluate the latent effect at the observed locations
-          latent_obs_MC <- latent_effect[sim_ppp_mod]
+          if(discrete==T)
+          {
+            latent_obs_MC <- latent_effect[sim_ind]
+          }
+          if(discrete==F)
+          {
+            latent_obs_MC <- latent_effect[sim_ppp_mod]
+          }
 
           ### rank the responses
           latent_obs_ranks_MC <- rank(latent_obs_MC)
@@ -616,6 +638,10 @@ PSTestRun <-
       }
       if (parallel == T)
       {
+        if(discrete==T)
+        {
+          stop('Parallel implementation not currently supported for discrete spatial data')
+        }
         cfun = function(a, b) {
           abind::abind(a, b, along = 1)
         }
@@ -669,6 +695,8 @@ PSTestRun <-
                                results <- array(0, dim = c(1, 3, no_nn))
                              }
 
+                             #sim_ppp_mod <- sim_ppps_mod[[i]]
+
                              # if (fix_n == T & discrete == F)
                              # {
                              #   while (sim_ppp_mod$n < proc_dat$observed_locations$n) {
@@ -704,7 +732,15 @@ PSTestRun <-
                              }
 
                              ## Evaluate the latent effect at the observed locations
-                             latent_obs_MC <- latent_effect[sim_ppp_mod]
+                             if(discrete==T)
+                             {
+                               latent_obs_MC <- latent_effect[i]
+                             }
+                             if(discrete == F)
+                             {
+                               latent_obs_MC <- latent_effect[sim_ppp_mod]
+                             }
+
 
                              ### rank the responses
                              latent_obs_ranks_MC <- rank(latent_obs_MC)
@@ -1054,34 +1090,38 @@ PSTestRun <-
       # extract the unique times and sort
       unique_observed_times <- sort(unique(proc_dat$observed_times), decreasing = F)
 
-      # Are the covariates fixed across time, or dynamic
-      dynamic_covs <- class(covariates[[1]]) == 'list'
-
-      # Is the latent effect fixed across time, or dynamic
-      dynamic_latent <- class(latent_effect) == 'list'
-
-      # Convert the latent effects to 'im' format
-      if(dynamic_latent == T)
+      if(discrete==F)
       {
-        for(l_ind in 1:length(latent_effect))
+        # Are the covariates fixed across time, or dynamic
+        dynamic_covs <- class(covariates[[1]]) == 'list'
+
+        # Is the latent effect fixed across time, or dynamic
+        dynamic_latent <- class(latent_effect) == 'list'
+
+        # Convert the latent effects to 'im' format
+        if(dynamic_latent == T)
         {
-          temp_latent_effect <- latent_effect[[l_ind]]
-          if (class(temp_latent_effect) != 'im')
+          for(l_ind in 1:length(latent_effect))
           {
-            latent_converted <- as(temp_latent_effect, 'SpatialGridDataFrame')
-            latent_effect[[l_ind]] <- as(latent_converted, 'im')
+            temp_latent_effect <- latent_effect[[l_ind]]
+            if (class(temp_latent_effect) != 'im')
+            {
+              latent_converted <- as(temp_latent_effect, 'SpatialGridDataFrame')
+              latent_effect[[l_ind]] <- as(latent_converted, 'im')
+            }
+          }
+
+        }
+        if(dynamic_latent == F)
+        {
+          if (class(latent_effect) != 'im')
+          {
+            latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
+            latent_effect <- as(latent_converted, 'im')
           }
         }
+      }
 
-      }
-      if(dynamic_latent == F)
-      {
-        if (class(latent_effect) != 'im')
-        {
-          latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
-          latent_effect <- as(latent_converted, 'im')
-        }
-      }
       # loop over the unique times (possibly in parallel)
       #browser()
       if(simultaneous==F)
@@ -1120,35 +1160,46 @@ PSTestRun <-
 
         covariates_subset <- covariates
         if(is.null(covariates)){covariates_subset <- NULL}
-        if(dynamic_covs==T & !is.null(covariates_subset))
-        {
-          covariates_subset <- covariates[[paste(time)]]
-          for(cov_ind in 1:length(covariates_subset))
-          {
-            # convert latent_effect into an im file
-            if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
-            {
-              cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
-              covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
-            }
-          }
-        }
-        if(dynamic_covs==F & !is.null(covariates_subset))
-        {
-          for(cov_ind in 1:length(covariates_subset))
-          {
-            # convert latent_effect into an im file
-            if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
-            {
-              cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
-              covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
-            }
-          }
-        }
         latent_subset <- latent_effect
-        if(dynamic_latent==T)
+
+        if(discrete == F)
         {
-          latent_subset <- latent_effect[[paste(time)]]
+          if(dynamic_covs==T & !is.null(covariates_subset))
+          {
+            covariates_subset <- covariates[[paste(time)]]
+            for(cov_ind in 1:length(covariates_subset))
+            {
+              # convert latent_effect into an im file
+              if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
+              {
+                cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
+                covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
+              }
+            }
+          }
+          if(dynamic_covs==F & !is.null(covariates_subset))
+          {
+            for(cov_ind in 1:length(covariates_subset))
+            {
+              # convert latent_effect into an im file
+              if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
+              {
+                cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
+                covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
+              }
+            }
+          }
+          if(dynamic_latent==T)
+          {
+            latent_subset <- latent_effect[[paste(time)]]
+          }
+        }
+        if(discrete == T)
+        {
+          covariates_subset <- covariates_subset[subset_proc_dat$prediction_df$t==time,]
+          latent_subset <- latent_subset[subset_proc_dat$prediction_df$t==time]
+          subset_proc_dat$prediction_df <- subset_proc_dat$prediction_df[subset_proc_dat$prediction_df$t==time,]
+          subset_proc_dat$areal_poly_observations <- subset_proc_dat$areal_poly_observations[observed_times==time]
         }
 
         # are the formulae unique per time period?
@@ -1199,7 +1250,6 @@ PSTestRun <-
       {
         Monte_Carlo_rho_values <- rho_vals_time
       }
-
       if(return_rho_vals==F & simultaneous==F)
       {
         test_rho_time <- NULL

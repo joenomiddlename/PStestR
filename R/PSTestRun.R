@@ -6,7 +6,7 @@
 #' @name PSTestRun
 #' @title Perform the Monte Carlo test for preferential sampling
 #'
-#' \code{PSTestRun} returns the empirical pointwise p-values of the test. Additionally,
+#' @description \code{PSTestRun} returns the empirical pointwise p-values of the test. Additionally,
 #' it may also return simultaneous empirical p-values from a rank envelope test with
 #' plots if asked.
 #'
@@ -703,16 +703,17 @@ PSTestRun <-
       }
       if (parallel == T)
       {
-        if(discrete==T)
-        {
-          stop('Parallel implementation not currently supported for discrete spatial data')
-        }
+        # if(discrete==T)
+        # {
+        #   stop('Parallel implementation not currently supported for discrete spatial data')
+        # }
         cfun = function(a, b) {
           abind::abind(a, b, along = 1)
         }
         if (discrete == T)
         {
           sim_ppps_mod <- vector(mode = "list", length = M)
+          sim_inds <- vector(mode = "list", length = M)
           ## Simulate from the binary model
           for(temp_ind in 1:M)
           {
@@ -725,6 +726,7 @@ PSTestRun <-
                   prob = fit_probs,
                   replace = F
                 )
+              sim_inds[[temp_ind]] <- sim_ind
               sim_ppps_mod[[temp_ind]] <-
                 spatstat::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
@@ -735,11 +737,12 @@ PSTestRun <-
             if (fix_n == F)
             {
               sim_ind <-
-                stats::rbinom(
+                which(stats::rbinom(
                   n = dim(covariates_full)[1],
                   prob = fit_probs,
                   size = 1
-                )
+                ) == 1)
+              sim_inds[[temp_ind]] <- sim_ind
               sim_ppps_mod[[temp_ind]] <-
                 spatstat::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
@@ -751,7 +754,7 @@ PSTestRun <-
         }
 
         rho_vals_MC_Iter <-
-          foreach::foreach(sim_ppp_mod = sim_ppps_mod,
+          foreach::foreach(i=1:M, #sim_ppp_mod = sim_ppps_mod,
                            .combine = 'cfun',
                            .inorder = F)  %dopar% {
                              results <- array(0, dim = c(1, 1, no_nn))
@@ -760,7 +763,8 @@ PSTestRun <-
                                results <- array(0, dim = c(1, 3, no_nn))
                              }
 
-                             #sim_ppp_mod <- sim_ppps_mod[[i]]
+                             sim_ppp_mod <- sim_ppps_mod[[i]]
+                             sim_ind <- sim_inds[[i]]
 
                              # if (fix_n == T & discrete == F)
                              # {
@@ -799,7 +803,7 @@ PSTestRun <-
                              ## Evaluate the latent effect at the observed locations
                              if(discrete==T)
                              {
-                               latent_obs_MC <- latent_effect[i]
+                               latent_obs_MC <- latent_effect[sim_ind]
                              }
                              if(discrete == F)
                              {

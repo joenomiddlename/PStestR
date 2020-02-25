@@ -1,4 +1,4 @@
-Package: pstestr
+Package: PSTestR
 Type: Package
 Title: Monte Carlo Test for Preferential Sampling in Spatio-Temporal Data
 Version: 0.1.0

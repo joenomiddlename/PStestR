@@ -6,7 +6,7 @@
 #' @name PSTestInit
 #' @title Initialise the data for performing the Monte Carlo test for preferential sampling
 #'
-#' \code{PSTestInit} returns the data in the neccessary format for use with the function
+#' @description \code{PSTestInit} returns the data in the neccessary format for use with the function
 #'   \code{\link{PSTestRun}}.
 #'
 #' @param  type is a character string taking value 'spatial' or 'spacetime'.

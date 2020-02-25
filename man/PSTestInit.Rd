@@ -2,10 +2,7 @@
 % Please edit documentation in R/PSTestInit.R
 \name{PSTestInit}
 \alias{PSTestInit}
-\title{Initialise the data for performing the Monte Carlo test for preferential sampling
-
-\code{PSTestInit} returns the data in the neccessary format for use with the function
-  \code{\link{PSTestRun}}.}
+\title{Initialise the data for performing the Monte Carlo test for preferential sampling}
 \usage{
 PSTestInit(
   type,
@@ -59,8 +56,6 @@ discrete==T.}
 A named list for use with \code{\link{PSTestRun}}.
 }
 \description{
-Initialise the data for performing the Monte Carlo test for preferential sampling
-
 \code{PSTestInit} returns the data in the neccessary format for use with the function
   \code{\link{PSTestRun}}.
 }

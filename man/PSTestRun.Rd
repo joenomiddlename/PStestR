@@ -2,13 +2,7 @@
 % Please edit documentation in R/PSTestRun.R
 \name{PSTestRun}
 \alias{PSTestRun}
-\title{Perform the Monte Carlo test for preferential sampling
-
-\code{PSTestRun} returns the empirical pointwise p-values of the test. Additionally,
-it may also return simultaneous empirical p-values from a rank envelope test with
-plots if asked.
-
-This function is called after initialising the data with the function \code{PSTestInit}.}
+\title{Perform the Monte Carlo test for preferential sampling}
 \usage{
 PSTestRun(
   proc_dat,
@@ -107,8 +101,6 @@ A named list containing a minimum of the empirical pointwise p values.
   correlations and plot objects may also be returned.
 }
 \description{
-Perform the Monte Carlo test for preferential sampling
-
 \code{PSTestRun} returns the empirical pointwise p-values of the test. Additionally,
 it may also return simultaneous empirical p-values from a rank envelope test with
 plots if asked.

@@ -45,7 +45,7 @@ library(doParallel)
 library(foreach)
 library(ggplot2)
 library(mgcv)
-library(pstestr)
+library(PSTestR)
 
 # set seed
 set.seed(12345)
@@ -396,13 +396,13 @@ library(doParallel)
 library(foreach)
 library(ggplot2)
 library(mgcv)
-library(pstestr)
+library(PSTestR)
 
 # set seed
 set.seed(12345)
 
 ## load areal data
-discrete_data <- pstestr:::sample_discrete_data#readRDS('../data/sample_discrete_data.rds')
+discrete_data <- PSTestR:::sample_discrete_data#readRDS('../data/sample_discrete_data.rds')
 list2env(discrete_data,.GlobalEnv)
 #source('PSTestInit')
 ```
@@ -545,13 +545,13 @@ library(doParallel)
 library(foreach)
 library(ggplot2)
 library(mgcv)
-library(pstestr)
+library(PSTestR)
 
 # set seed
 set.seed(12345)
 
 ## load areal data
-discrete_st_data <- pstestr:::sample_st_discrete_data#readRDS('../data/sample_st_discrete_data.rds')
+discrete_st_data <- PSTestR:::sample_st_discrete_data#readRDS('../data/sample_st_discrete_data.rds')
 list2env(discrete_st_data,.GlobalEnv)
 #source('PSTestInit')
 ```

@@ -762,9 +762,11 @@ PSTestRun <-
                              {
                                results <- array(0, dim = c(1, 3, no_nn))
                              }
-
                              sim_ppp_mod <- sim_ppps_mod[[i]]
-                             sim_ind <- sim_inds[[i]]
+                             if(discrete == T)
+                             {
+                               sim_ind <- sim_inds[[i]]
+                             }
 
                              # if (fix_n == T & discrete == F)
                              # {

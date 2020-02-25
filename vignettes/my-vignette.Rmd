@@ -28,10 +28,12 @@ Setting up the data is made simple with the helper function `PSTestInit`. For ge
 * `positions` - this takes either an object of class ppp or else it takes a data.frame with named values x and y. These give the coordinates of the observed points
 * `poly` - this takes a polygon-style object defining the boundaries of the study region. This can be of class owin (from the spatstat package), SpatialPolygons (from the sp package) or sf (from the sf package).
 
-In addition to the above, the following are additional (optional) arguments to call:
+In addition to the above, there is the additional following additional (optional) argument:
 
 * `n_prediction` - this specifies the number of points to be generated within the study region. The coordinates of these points are returned for predicting the latent effect over, and for evaluating the covariates for later use with fitting the point processes.
-* `covariate_grids` - this is a list of covariate rasters, grids or pixels. They must be defined over the study region of interest and be in the same coordinate reference system or units (e.g. km or m) as the coordinates in the positions objects. These can be of class `SpatialPixelsDataFrame`, `SpatialGridDataFrame` (`sp` package), `sf` (`sf` package), or `im` (`spatstat` package). Covariates can be added later in the `PSTestRun` function.
+```{r, echo=FALSE}
+#* `covariate_grids` - this is a list of covariate rasters, grids or pixels. They must be defined over the study region of interest and be in the same coordinate reference system or units (e.g. km or m) as the coordinates in the positions objects. These can be of class `SpatialPixelsDataFrame`, `SpatialGridDataFrame` (`sp` package), `sf` (`sf` package), or `im` (`spatstat` package). Covariates can be added later in the `PSTestRun` function.
+```
 
 ```{r, include=FALSE}
 library(sp)
@@ -276,9 +278,12 @@ For spatio-temporal data, the `PSTestInit` function is used similarly as before 
 * `positions` - this takes either an object of class ppp containing **all** the points across **all the times**. Otherwise, it takes a data.frame with named values x and y, giving the coordinates of **all** the observed points, across **all** times. Thus the number of rows of `positions` must equal the length of `times`.
 * `poly` - this takes a polygon-style object defining the boundaries of the study region. This can be of class `owin` (from the `spatstat` package), `SpatialPolygons` (from the `sp` package) or `sf` (from the `sf` package).
 
-In addition to the above, the following optional argument also changes:
+```{r, echo=FALSE}
 
-* `covariate_grids` - this is now either a list of covariate rasters, grids or pixels as before, or a named list of lists. In the latter, each list must contain a set of covariate rasters, grids or pixels for a specific time period. The names of the list entries must correspond to the unique values in `times`.
+#In addition to the above, the following optional argument also changes:
+
+#* `covariate_grids` - this is now either a list of covariate rasters, grids or pixels as before, or a named list of lists. In the latter, each list must contain a set of covariate rasters, grids or pixels for a specific time period. The names of the list entries must correspond to the unique values in `times`.
+```
 
 Thus returning to our example, for the `positions` argument we create a data.frame with named elements `x` and `y` for both `spat_dat2` and `spat_dat3`. Next, we merge the two data frames. Finally, to create `times`, we create a vector of length *n_2 + n_3* with the first *n_2* entries set to 2 and the remaining *n_3* entries set equal to 3. Then, we plug these into the `PSTestInit` function.
 

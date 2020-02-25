@@ -2,3 +2,9 @@
 
 export(PSTestInit)
 export(PSTestRun)
+importFrom(foreach,"%dopar%")
+importFrom(methods,as)
+importFrom(stats,binomial)
+importFrom(stats,coef)
+importFrom(stats,cor.test)
+importFrom(stats,rbinom)

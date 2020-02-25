@@ -1,11 +1,49 @@
 #' @export
-
-# Data preparation stage
-
+#' @importFrom stats binomial coef cor.test rbinom
+#' @importFrom foreach %dopar%
+#' @importFrom methods as
+#' @importFrom stats coef
+#' @name PSTestInit
+#' @title Initialise the data for performing the Monte Carlo test for preferential sampling
+#'
+#' \code{PSTestInit} returns the data in the neccessary format for use with the function
+#'   \code{\link{PSTestRun}}.
+#'
+#' @param  type is a character string taking value 'spatial' or 'spacetime'.
+#' @param  discrete is a logical value stating if the data are discrete spatial
+#'   (i.e. areal data), or continous spatial (i.e. point-referenced data).
+#' @param  positions give the coordinates of the observations in space and time.
+#'   This argument only needs specifying when discrete==F. When discrete=F,
+#'   this is either an object of class ppp or else it takes a data.frame with
+#'   named values x and y. These give the coordinates of the observed points.
+#' @param  times give the discrete times of the observed points. Only required
+#'   in the spacetime setting (i.e. when type=='spacetime').
+#' @param  poly this takes a polygon-style object defining the boundaries of
+#'   the study region. This can be of class owin (from the spatstat package),
+#'   SpatialPolygons (from the sp package) or sf (from the sf package).
+#'   This argument is only required when when discrete==F.
+#' @param  discrete_locations is an optional argument when discrete==T. It gives
+#'   the locations of the population of areal units. This is useful to specify
+#'   when the distances with respect to areal unit centroids is not desirable.
+#' @param  areal_polygons Specifies the polygons defining the population of areal
+#'   units. This argument only needs specifying when discrete==T.
+#'   This takes an object of class owin (from the spatstat package),
+#'   SpatialPolygons (from the sp package) or sf (from the sf package).
+#' @param  areal_poly_observations this is a vector of indices denoting the
+#'   polygons with complete data. This argument only needs specifying when
+#'   discrete==T.
+#' @param  n_prediction is an integer specifying the number of prediction
+#'   locations to generate within poly. This argument only needs specifying when
+#'   discrete==T.
+#' @return A named list for use with \code{\link{PSTestRun}}.
+#' @seealso \code{\link{PSTestRun}}
+#' @section Examples:
+#'   For detailed examples, see the vignette, or visit
+#'   \url{https://github.com/joenomiddlename/PStestR} for more details.
 PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                        poly=NULL, discrete_locations=NULL,
                        areal_polygons=NULL, areal_poly_observations=NULL,
-                       n_prediction=10000, covariate_grids = NULL){
+                       n_prediction=10000){
   #### type is one of spatial, spacetime or time
   #### discrete is one of continuous or discrete
   #### positions give the coordinates of the observations in space or time
@@ -14,10 +52,6 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
   #### areal_polygons give the polygons defining the areal units
   #### areal_poly_observations gives the indices of the polygons observed
   #### n_prediction specifies the number of prediction locations within poly
-  #### covariate_grids is a list. For spatial settings, each elements is a grid of a single spatial covariate
-  # In spacetime settings, we either have a separate list of covariates for each time, or shared covariates
-  # In the former, each element is a list, with elements equal to the grid of a single covariate for that time
-  # In the latter, each element is a grid of a single spatial covariate shared across the times.
   if(!(type %in% c('spatial','spacetime','time')))
   {
     stop('type should be one of \'spatial\', \'spacetime\' or \'time\'')
@@ -31,46 +65,46 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
     stop('One of \'positions\' or \'areal_poly_observations\' must be specified')
   }
 
-  if(!is.null(covariate_grids))
-  {
-    # change the covariates into owin type
-    if(type=='spatial')
-    {
-      # first convert to SpatialPixelsDataframe
-      covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialPixelsDataFrame")})
-      # Then convert to SpatialGridDataframe
-      covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialGridDataFrame")})
-      # Finally convert to im
-      covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "im")})
-    }
-    # change the covariates into owin type
-    if(type=='spacetime')
-    {
-      if(class(covariate_grids[[1]]) != 'list') # shared covariates
-      {
-        # first convert to SpatialPixelsDataframe
-        covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialPixelsDataFrame")})
-        # Then convert to SpatialGridDataframe
-        covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialGridDataFrame")})
-        # Finally convert to im
-        covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "im")})
-      }
-      if(class(covariate_grids[[1]]) == 'list') # not shared covariates
-      {
-        for(i in 1:length(covariate_grids))
-        {
-          covariate_grids_temp <- covariate_grids[[i]]
-          # first convert to SpatialPixelsDataframe
-          covariate_grids_temp <- lapply(covariate_grids_temp, FUN = function(x){as(x, "SpatialPixelsDataFrame")})
-          # Then convert to SpatialGridDataframe
-          covariate_grids_temp <- lapply(covariate_grids_temp, FUN = function(x){as(x, "SpatialGridDataFrame")})
-          # Finally convert to im
-          covariate_grids[[i]] <- lapply(covariate_grids_temp, FUN = function(x){as(x, "im")})
-        }
-
-      }
-    }
-  }
+  # if(!is.null(covariate_grids))
+  # {
+  #   # change the covariates into owin type
+  #   if(type=='spatial')
+  #   {
+  #     # first convert to SpatialPixelsDataframe
+  #     covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialPixelsDataFrame")})
+  #     # Then convert to SpatialGridDataframe
+  #     covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialGridDataFrame")})
+  #     # Finally convert to im
+  #     covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "im")})
+  #   }
+  #   # change the covariates into owin type
+  #   if(type=='spacetime')
+  #   {
+  #     if(class(covariate_grids[[1]]) != 'list') # shared covariates
+  #     {
+  #       # first convert to SpatialPixelsDataframe
+  #       covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialPixelsDataFrame")})
+  #       # Then convert to SpatialGridDataframe
+  #       covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "SpatialGridDataFrame")})
+  #       # Finally convert to im
+  #       covariate_grids <- lapply(covariate_grids, FUN = function(x){as(x, "im")})
+  #     }
+  #     if(class(covariate_grids[[1]]) == 'list') # not shared covariates
+  #     {
+  #       for(i in 1:length(covariate_grids))
+  #       {
+  #         covariate_grids_temp <- covariate_grids[[i]]
+  #         # first convert to SpatialPixelsDataframe
+  #         covariate_grids_temp <- lapply(covariate_grids_temp, FUN = function(x){as(x, "SpatialPixelsDataFrame")})
+  #         # Then convert to SpatialGridDataframe
+  #         covariate_grids_temp <- lapply(covariate_grids_temp, FUN = function(x){as(x, "SpatialGridDataFrame")})
+  #         # Finally convert to im
+  #         covariate_grids[[i]] <- lapply(covariate_grids_temp, FUN = function(x){as(x, "im")})
+  #       }
+  #
+  #     }
+  #   }
+  # }
 
   if(type == 'spatial'){
 
@@ -122,8 +156,7 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                   prediction_grid = grid,
                   observed_locations = positions_converted,
                   discrete = F,
-                  type = type,
-                  covariate_grids = covariate_grids))
+                  type = type))
     }
     if(discrete == T)
     {
@@ -156,7 +189,6 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                   observed_locations = positions_converted,
                   discrete = T,
                   type = type,
-                  covariate_grids = covariate_grids,
                   areal_poly_observations = areal_poly_observations))
     }
 
@@ -221,8 +253,7 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                   observed_locations = positions_converted,
                   observed_times = times,
                   discrete = F,
-                  type = type,
-                  covariate_grids = covariate_grids))
+                  type = type))
     }
     if(discrete == T)
     {
@@ -270,7 +301,6 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                   observed_times = times,
                   discrete = T,
                   type = type,
-                  covariate_grids = covariate_grids,
                   areal_poly_observations = areal_poly_observations))
     }
 

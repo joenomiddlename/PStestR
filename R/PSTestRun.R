@@ -1,9 +1,74 @@
 #' @export
-
-# PS test stage
-
-# Data should be preprocessed using PSTestInit.R
-
+#' @importFrom stats binomial coef cor.test rbinom
+#' @importFrom foreach %dopar%
+#' @importFrom methods as
+#' @importFrom stats coef
+#' @name PSTestRun
+#' @title Perform the Monte Carlo test for preferential sampling
+#'
+#' \code{PSTestRun} returns the empirical pointwise p-values of the test. Additionally,
+#' it may also return simultaneous empirical p-values from a rank envelope test with
+#' plots if asked.
+#'
+#' This function is called after initialising the data with the function \code{PSTestInit}.
+#'
+#' @param proc_dat is the processed data from PSTestInit.
+#' @param formula is a formula in the R language describing the model to be fitted by
+#'   spatstat. For spacetime data, this can be a named list of formulas. The name of
+#'   each element of the list matches a name of one of the observed time steps. Each
+#'   element gives the formula for the time step.
+#' @param interaction is an object of spatstat class "interact" describing the point
+#'   process interaction structure, can also be a function that makes such an object,
+#'   or NULL indicating that a Poisson process (stationary or nonstationary) should
+#'   be fitted. See the help file for \code{\link[spatstat:ppm]{ppm}} from the
+#'   \code{spatstat} package for more details.
+#' @param M specifies the number of Monte Carlo samples to take
+#' @param covariates is a list when discrete==F, whose entries are images, functions,
+#'   windows, tessellations or single numbers when spatial. When spacetime, covariates
+#'   is either a named list of lists (one per timestep), or a list of entries of covariates
+#'   constant through time. When covariates change over time, name the lists with the
+#'   number that points the list of covariates to the correct time. See the help file for
+#'   \code{\link[spatstat:ppm]{ppm}} from the \code{spatstat} package for allowed types
+#'   of covariates. When discrete==T, covariates is a data.frame object, in both the
+#'   spatial and spacetime setting.
+#' @param latent_effect is the latent effect of interest. When discrete==F, it is
+#'   evaluated over a high resolution grid. For discrete==T, the latent effect is
+#'   a vector of class numeric. For discrete==T, the length must equal to the number
+#'   of areal units in the population multiplied by the number of unique time steps.
+#'   For discrete==F, latent effect is of class im, or a SpatialPixels style format.
+#'   For spacetime data when discrete==F, latent_effect is either a named list of im
+#'   or SpatialPixels style objects (one per time period), or as before for spatial.
+#'   The naming convention for the named list is the same as before.
+#' @param PS is a string specifying the direction of PS in the alternative. One of
+#'   'positive', 'negative' or 'either'.
+#' @param no_nn specifies the maximum number of nearest neighbours to average the
+#'   distance over. Results of the tests of all values K=1:no_nn are returned.
+#' @param residual_tests is a logical argument specifying if the rank correlation
+#'   of the smoothed raw HPP and model residuals should be computed.
+#' @param sigma,leaveoneout are additional arguments for the \code{\link[spatstat:density.ppp]{density}}
+#'   function in spatstat.
+#' @param fix_n is a logical stating if the sample size should be fixed in the
+#'   Monte Carlo samples to value observed in the data.
+#' @param parallel is a logical specifying if the code should be run in parallel.
+#' @param ncores specifies the number of cores to parallelize over if parallel=T.
+#' @param simultaneous is a logical specifying if the simultaneous test should
+#'   be computed that corrects for multiple testing. This performs a rank envelope
+#'   test.
+#' @param global_alpha is a number between 0 and 1 specifying the significance
+#'   level of the simultaneous test.
+#' @param return_rho_vals is a logical stating if the raw rank correlations should
+#'   be returned.
+#' @param return_plots is a logical stating if the ggplot object should be printed
+#'   (if simultaneous = T).
+#' @param return_model is a logical stating if the fitted model object from
+#'   spatstat, or mgcv should be returned.
+#' @return A named list containing a minimum of the empirical pointwise p values.
+#'   Depending on the arguments specified above, simultaneous p values, rank
+#'   correlations and plot objects may also be returned.
+#' @seealso \code{\link{PSTestInit}}
+#' @section Examples:
+#'   For detailed examples, see the vignette, or visit
+#'   \url{https://github.com/joenomiddlename/PStestR} for more details.
 PSTestRun <-
   function(proc_dat,
            formula,
@@ -68,8 +133,8 @@ PSTestRun <-
     # convert latent_effect into an im file
     if (class(latent_effect) != 'im' & proc_dat$type == 'spatial' & proc_dat$discrete == F)
     {
-      latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
-      latent_effect <- as(latent_converted, 'im')
+      latent_converted <- methods::as(latent_effect, 'SpatialGridDataFrame')
+      latent_effect <- methods::as(latent_converted, 'im')
     }
 
     # Check all covariates are in correct format
@@ -80,8 +145,8 @@ PSTestRun <-
         # convert latent_effect into an im file
         if (class(covariates[[cov_ind]]) != 'im' & class(covariates[[cov_ind]]) != 'function')
         {
-          cov_converted <- as(covariates[[cov_ind]], 'SpatialGridDataFrame')
-          covariates[[cov_ind]] <- as(cov_converted, 'im')
+          cov_converted <- methods::as(covariates[[cov_ind]], 'SpatialGridDataFrame')
+          covariates[[cov_ind]] <- methods::as(cov_converted, 'im')
         }
       }
     }
@@ -175,7 +240,7 @@ PSTestRun <-
         nn_ranks,
         2,
         FUN = function(x) {suppressWarnings(
-          cor.test(
+          stats::cor.test(
             ~ x +
               latent_obs_ranks,
             method = "spearman",
@@ -193,7 +258,7 @@ PSTestRun <-
 
         ## merge all covariates into one list
         covariates_full = do.call(c,
-                                  list(proc_dat$covariate_grids, covariates, latent_effect))
+                                  list(covariates, latent_effect))
 
         ## Fit the point process model
         fit <-
@@ -306,7 +371,7 @@ PSTestRun <-
 
           #browser()
 
-          rho_rank_residual_hpp = suppressWarnings( cor.test(
+          rho_rank_residual_hpp = suppressWarnings( stats::cor.test(
             ~ residual_ranks_hpp +
               latent_obs_ranks,
             method = "spearman",
@@ -315,7 +380,7 @@ PSTestRun <-
             conf.level = 0.95
           )$estimate )
 
-          rho_rank_residual = suppressWarnings( cor.test(
+          rho_rank_residual = suppressWarnings( stats::cor.test(
             ~ residual_ranks +
               latent_obs_ranks,
             method = "spearman",
@@ -382,10 +447,10 @@ PSTestRun <-
         ## Fit the Bernoulli model
         fit <-
           mgcv::gam(formula = formula,
-                    family = binomial,
+                    family = stats::binomial,
                     data = covariates_full)
 
-        print(summary(fit)$p.table)
+        print(mgcv::summary.gam(fit)$p.table)
 
         ## Estimate the probabilities of selection for each discrete spatial unit
         fit_probs <-
@@ -418,7 +483,7 @@ PSTestRun <-
                   replace = F
                 )
               sim_ppp_mod <-
-                ppp(
+                spatstat::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -427,13 +492,13 @@ PSTestRun <-
             if (fix_n == F)
             {
               sim_ind <-
-                which(rbinom(
+                which(stats::rbinom(
                   n = dim(covariates_full)[1],
                   prob = fit_probs,
                   size = 1
                 ) == 1)
               sim_ppp_mod <-
-                ppp(
+                spatstat::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -502,7 +567,7 @@ PSTestRun <-
             nn_ranks_MC,
             2,
             FUN = function(z) { suppressWarnings(
-              cor.test(
+              stats::cor.test(
                 ~ z +
                   latent_obs_ranks_MC,
                 method = "spearman",
@@ -611,7 +676,7 @@ PSTestRun <-
             residual_ranks_MC <- rank(res_selected_MC)
 
             rho_rank_residual_hpp_MC <- suppressWarnings(
-              cor.test(
+              stats::cor.test(
                 ~ residual_ranks_hpp_MC +
                   latent_obs_ranks_MC,
                 method = "spearman",
@@ -620,7 +685,7 @@ PSTestRun <-
                 conf.level = 0.95
               )$estimate )
 
-            rho_rank_residual_MC = suppressWarnings( cor.test(
+            rho_rank_residual_MC = suppressWarnings( stats::cor.test(
               ~ residual_ranks_MC +
                 latent_obs_ranks_MC,
               method = "spearman",
@@ -661,7 +726,7 @@ PSTestRun <-
                   replace = F
                 )
               sim_ppps_mod[[temp_ind]] <-
-                ppp(
+                spatstat::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -670,13 +735,13 @@ PSTestRun <-
             if (fix_n == F)
             {
               sim_ind <-
-                rbinom(
+                stats::rbinom(
                   n = dim(covariates_full)[1],
                   prob = fit_probs,
                   size = 1
                 )
               sim_ppps_mod[[temp_ind]] <-
-                ppp(
+                spatstat::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -753,7 +818,7 @@ PSTestRun <-
                                nn_ranks_MC,
                                2,
                                FUN = function(z) { suppressWarnings(
-                                 cor.test(
+                                 stats::cor.test(
                                    ~ z +
                                      latent_obs_ranks_MC,
                                    method = "spearman",
@@ -867,7 +932,7 @@ PSTestRun <-
                                residual_ranks_MC <- rank(res_selected_MC)
 
                                rho_rank_residual_hpp_MC <- suppressWarnings(
-                                 cor.test(
+                                 stats::cor.test(
                                    ~ residual_ranks_hpp_MC +
                                      latent_obs_ranks_MC,
                                    method = "spearman",
@@ -876,7 +941,7 @@ PSTestRun <-
                                    conf.level = 0.95
                                  )$estimate )
 
-                               rho_rank_residual_MC = suppressWarnings( cor.test(
+                               rho_rank_residual_MC = suppressWarnings( stats::cor.test(
                                  ~ residual_ranks_MC +
                                    latent_obs_ranks_MC,
                                  method = "spearman",
@@ -996,13 +1061,13 @@ PSTestRun <-
           plot_NN <- NULL
           if( return_plots==T )
           {
-            plot_NN <- ggplot(plot_band_NN, aes(x=x,y=y,ymax=ymax,ymin=ymin)) +
-              geom_line(colour='blue') +
-              geom_ribbon(alpha=0.2) +
-              ylim(c(min(-crit_deviance-0.05, min(result)), max(crit_deviance+0.05,max(result)))) +
-              xlab('K Nearest Neighbours') +
-              ylab('Rank Correlation') +
-              ggtitle('Rank correlations between the latent field and the K-NN distance',
+            plot_NN <- ggplot2::ggplot(plot_band_NN, ggplot2::aes_(x=~x,y=~y,ymax=~ymax,ymin=~ymin)) +
+              ggplot2::geom_line(colour='blue') +
+              ggplot2::geom_ribbon(alpha=0.2) +
+              ggplot2::ylim(c(min(-crit_deviance-0.05, min(result)), max(crit_deviance+0.05,max(result)))) +
+              ggplot2::xlab('K Nearest Neighbours') +
+              ggplot2::ylab('Rank Correlation') +
+              ggplot2::ggtitle('Rank correlations between the latent field and the K-NN distance',
                       subtitle='The Monte Carlo global envelope is shown as a greyscale band')
 
             print(plot_NN)
@@ -1106,8 +1171,8 @@ PSTestRun <-
             temp_latent_effect <- latent_effect[[l_ind]]
             if (class(temp_latent_effect) != 'im')
             {
-              latent_converted <- as(temp_latent_effect, 'SpatialGridDataFrame')
-              latent_effect[[l_ind]] <- as(latent_converted, 'im')
+              latent_converted <- methods::as(temp_latent_effect, 'SpatialGridDataFrame')
+              latent_effect[[l_ind]] <- methods::as(latent_converted, 'im')
             }
           }
 
@@ -1116,8 +1181,8 @@ PSTestRun <-
         {
           if (class(latent_effect) != 'im')
           {
-            latent_converted <- as(latent_effect, 'SpatialGridDataFrame')
-            latent_effect <- as(latent_converted, 'im')
+            latent_converted <- methods::as(latent_effect, 'SpatialGridDataFrame')
+            latent_effect <- methods::as(latent_converted, 'im')
           }
         }
       }
@@ -1172,8 +1237,8 @@ PSTestRun <-
               # convert latent_effect into an im file
               if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
               {
-                cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
-                covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
+                cov_converted <- methods::as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
+                covariates_subset[[cov_ind]] <- methods::as(cov_converted, 'im')
               }
             }
           }
@@ -1184,8 +1249,8 @@ PSTestRun <-
               # convert latent_effect into an im file
               if (class(covariates_subset[[cov_ind]]) != 'im' & class(covariates_subset[[cov_ind]]) != 'function')
               {
-                cov_converted <- as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
-                covariates_subset[[cov_ind]] <- as(cov_converted, 'im')
+                cov_converted <- methods::as(covariates_subset[[cov_ind]], 'SpatialGridDataFrame')
+                covariates_subset[[cov_ind]] <- methods::as(cov_converted, 'im')
               }
             }
           }
@@ -1312,17 +1377,17 @@ PSTestRun <-
         plot_NN <- NULL
         if( return_plots==T )
         {
-          plot_NN <- ggplot(plot_band_NN, aes(x=time, y=NN, fill=rho, alpha=significant)) +
-            geom_raster() + scale_x_continuous('Time', breaks=1:length(unique_observed_times), labels=as.character(unique_observed_times), limits=c(0,length(unique_observed_times)+1)) +
-            scale_y_continuous('Nearest Neigbours K', breaks=1:no_nn, labels=as.character(1:no_nn), limits=c(0,no_nn+1)) +
-            scale_fill_viridis_c(begin=0.1, end=1, option = 'B') +
-            scale_alpha_continuous(name='significant',range=c(0,1),breaks=c(0,1),labels=c('no','yes'), limits=c(0,1)) +
-            xlab('Time') +
-            ylab('Nearest Neigbours K') +
-            ggtitle('Rank correlations between latent field and the K-NN distances vs. time and K',
+          plot_NN <- ggplot2::ggplot(plot_band_NN, ggplot2::aes_(x=~time, y=~NN, fill=~rho, alpha=~significant)) +
+            ggplot2::geom_raster() + ggplot2::scale_x_continuous('Time', breaks=1:length(unique_observed_times), labels=as.character(unique_observed_times), limits=c(0,length(unique_observed_times)+1)) +
+            ggplot2::scale_y_continuous('Nearest Neigbours K', breaks=1:no_nn, labels=as.character(1:no_nn), limits=c(0,no_nn+1)) +
+            ggplot2::scale_fill_viridis_c(begin=0.1, end=1, option = 'B') +
+            ggplot2::scale_alpha_continuous(name='significant',range=c(0,1),breaks=c(0,1),labels=c('no','yes'), limits=c(0,1)) +
+            ggplot2::xlab('Time') +
+            ggplot2::ylab('Nearest Neigbours K') +
+            ggplot2::ggtitle('Rank correlations between latent field and the K-NN distances vs. time and K',
                     subtitle = 'Only values of the tests falling outside the global envelope are shown') +
-            annotate("rect", xmin = plot_band_NN$time-0.25, xmax = plot_band_NN$time+0.25, ymin = plot_band_NN$NN-0.25, ymax = plot_band_NN$NN+0.25, colour='white', alpha=1, fill='white') +
-            annotate("text", x = plot_band_NN$time, y = plot_band_NN$NN, label = round(plot_band_NN$rho,2))
+            ggplot2::annotate("rect", xmin = plot_band_NN$time-0.25, xmax = plot_band_NN$time+0.25, ymin = plot_band_NN$NN-0.25, ymax = plot_band_NN$NN+0.25, colour='white', alpha=1, fill='white') +
+            ggplot2::annotate("text", x = plot_band_NN$time, y = plot_band_NN$NN, label = round(plot_band_NN$rho,2))
 
           print(plot_NN)
         }
@@ -1384,7 +1449,7 @@ PSTestRun <-
       #   }
       #
       #   cfun2 <- function(a,b){abind::abind(a,b,along=0)}
-      #   p_vals_time <- foreach(temp_dat = data_list, .combine = 'cfun2', .inorder = T) %dopar% {
+      #   p_vals_time <- foreach(temp_dat = data_list, .combine = 'cfun2', .inorder = T) foreach::%dopar% {
       #
       #     return(PSTestRun(proc_dat = temp_dat$subset_proc_dat, formula = formula,
       #                                      interaction = interaction,

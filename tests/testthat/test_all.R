@@ -34,10 +34,10 @@ window_pixels <- makegrid(window_poly, n=10000)
 window_pixels <- SpatialPixels(points = SpatialPoints(as.matrix(window_pixels) ))
 
 # create data objects needed for running test
-capture.output(file='NUL', test_spat_dat <- PSTestInit(type='spatial', discrete = F, positions=spat_dat,
+NUL <- capture.output(test_spat_dat <- PSTestInit(type='spatial', discrete = F, positions=spat_dat,
                             poly=window_poly, n_prediction = 10000) )
 
-capture.output(file='NUL', test_st_dat <- PSTestInit(type='spacetime', discrete = F, positions=coords(superimpose(st_dat)),
+NUL <- capture.output( test_st_dat <- PSTestInit(type='spacetime', discrete = F, positions=coords(superimpose(st_dat)),
                           times = c(rep(1,st_dat$`Simulation 1`$n),rep(2,st_dat$`Simulation 2`$n)),
                           poly=window_poly, n_prediction = 10000) )
 
@@ -56,7 +56,7 @@ latent_effect2 = SpatialPixelsDataFrame(test_spat_dat$prediction_grid,
 ## PS Test
 
 # First test the spatial test against the latent effect 1
-capture.output(file='NUL', spat_test_1 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( spat_test_1 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect1,
                          residual_tests=T, M=19, no_nn = 10,
                          parallel = T, ncores=1,
@@ -67,7 +67,7 @@ test_that('spatial analysis with residual tests, no covariates with parallel pac
 })
 
 # Next test the spatial test against the latent effect 2
-capture.output(file='NUL', spat_test_2 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( spat_test_2 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect2,
                          residual_tests=T, M=19, no_nn = 10,
                          parallel = F, ncores=1,
@@ -79,14 +79,14 @@ test_that('spatial analysis with residual tests, no covariates without parallel 
 
 ## Repeat but with global tests
 # First test the spatial test against the latent effect 1
-capture.output(file='NUL', spat_global_test_1 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( spat_global_test_1 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect1,
                          residual_tests=F, M=19, no_nn = 20,
                          parallel = T, ncores=1, simultaneous = T,
                          return_plots = F) )
 
 # Next test the spatial test against the latent effect 2
-capture.output(file='NUL', spat_global_test_2 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( spat_global_test_2 <- PSTestRun(test_spat_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect2,
                          residual_tests=F, M=19, no_nn = 20,
                          parallel = F, ncores=1, simultaneous = T,
@@ -101,14 +101,14 @@ test_that('Global test spatial analysis with residual tests, no covariates witho
 
 ### Repeat for the spatio-temporal data
 # First test the spatial test against the latent effect 1
-capture.output(file='NUL', st_test_1 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( st_test_1 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect1,
                          residual_tests=T, M=19, no_nn = 10,
                          parallel = T, ncores=1,
                        return_plots = F) )
 
 # Next test the spatial test against the latent effect 2
-capture.output(file='NUL', st_test_2 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( st_test_2 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect2,
                          residual_tests=F, M=19, no_nn = 10,
                          parallel = F, ncores=1,
@@ -123,21 +123,21 @@ test_that('spacetime analysis without residual tests, no covariates without para
 
 ## Repeat but with global tests
 # First test the spatial test against the latent effect 1
-capture.output(file='NUL',st_global_test_1 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output(st_global_test_1 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect1,
                          residual_tests=F, M=19, no_nn = 20,
                          parallel = T, ncores=1, simultaneous = T,
                          return_plots = F) )
 
 # Next test the spatial test against the latent effect 2
-capture.output(file='NUL', st_global_test_2 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( st_global_test_2 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
                          latent_effect = latent_effect2,
                          residual_tests=F, M=19, no_nn = 20,
                          parallel = F, ncores=1, simultaneous = T,
                          return_plots = F) )
 
 # Now, test the model with two different latent effects for each time step
-capture.output(file='NUL', st_global_test_3 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
+NUL <- capture.output( st_global_test_3 <- PSTestRun(test_st_dat, formula = ~ 1, interaction = NULL,
                               latent_effect = list('1'=latent_effect1,'2'=latent_effect2),
                               residual_tests=F, M=19, no_nn = 20,
                               parallel = F, ncores=1, simultaneous = T,
@@ -160,7 +160,7 @@ covariates_1 <- list(cov1=int_function,
                                                  data=data.frame(cov2=runif(dim(test_spat_dat$prediction_df)[1]))))
 
 # This test now includes the latent effect as a covariate and hence removes the correlation
-capture.output(file='NUL',st_global_test_4 <- PSTestRun(test_st_dat, formula = ~ cov1 + cov2, interaction = NULL,
+NUL <- capture.output(st_global_test_4 <- PSTestRun(test_st_dat, formula = ~ cov1 + cov2, interaction = NULL,
                                latent_effect = list('1'=latent_effect1,'2'=latent_effect2),
                                residual_tests=F, M=19, no_nn = 20,
                                covariates = covariates_1,
@@ -173,7 +173,7 @@ covariates_2 <- list('1'=list(cov1=int_function),
                                                  data=data.frame(cov2=runif(dim(test_spat_dat$prediction_df)[1])))))
 
 # This test now includes the latent effect as a covariate and hence removes the correlation
-capture.output(file='NUL', st_global_test_5 <- PSTestRun(test_st_dat, formula = ~ cov1, interaction = NULL,
+NUL <- capture.output( st_global_test_5 <- PSTestRun(test_st_dat, formula = ~ cov1, interaction = NULL,
                                latent_effect = list('1'=latent_effect1,'2'=latent_effect2),
                                residual_tests=F, M=19, no_nn = 20,
                                covariates = covariates_2,
@@ -186,7 +186,7 @@ covariates_3 <- list('1'=list(cov1=SpatialPixelsDataFrame(test_st_dat$prediction
                                                       data=data.frame(cov2=runif(dim(test_spat_dat$prediction_df)[1])))))
 
 # This test no longer includes the latent effect as a covariate and hence the correlation is once again detected
-capture.output(file='NUL',st_global_test_6 <- PSTestRun(test_st_dat, formula = ~ cov1, interaction = NULL,
+NUL <- capture.output(st_global_test_6 <- PSTestRun(test_st_dat, formula = ~ cov1, interaction = NULL,
                                  latent_effect = list('1'=latent_effect1,'2'=latent_effect2),
                                  residual_tests=F, M=19, no_nn = 20,
                                  covariates = covariates_3,

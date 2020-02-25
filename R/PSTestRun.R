@@ -31,9 +31,10 @@
 #'   \code{\link[spatstat:ppm]{ppm}} from the \code{spatstat} package for allowed types
 #'   of covariates. When discrete==T, covariates is a data.frame object, in both the
 #'   spatial and spacetime setting.
-#' @param latent_effect is the latent effect of interest. When discrete==F, it is
-#'   evaluated over a high resolution grid. For discrete==T, the latent effect is
-#'   a vector of class numeric. For discrete==T, the length must equal to the number
+#' @param latent_effect is the latent effect of interest. When discrete==F, it needs
+#'   to be predicted over a high resolution grid. For discrete==T, the latent effect
+#'   needs to be predicted at each areal unit. For discrete==T, this is a vector of
+#'   class numeric. For discrete==T, the length must equal the number
 #'   of areal units in the population multiplied by the number of unique time steps.
 #'   For discrete==F, latent effect is of class im, or a SpatialPixels style format.
 #'   For spacetime data when discrete==F, latent_effect is either a named list of im

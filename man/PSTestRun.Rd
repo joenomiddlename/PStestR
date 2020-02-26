@@ -110,8 +110,8 @@ This function is called after initialising the data with the function \code{PSTe
 }
 \section{Examples}{
 
-  For detailed examples, see the vignette, or visit
-  \url{https://github.com/joenomiddlename/PStestR} for more details.
+  For detailed examples, see the vignette (i.e. run vignette('PSTestR')),
+  or visit \url{https://github.com/joenomiddlename/PStestR} for more details.
 }
 
 \seealso{

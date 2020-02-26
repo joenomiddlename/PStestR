@@ -14,7 +14,8 @@
 #'   PSTestInit.
 #'
 #'   For detailed examples about how to use the PSTestR, consult the
-#'   vignette, or visit \url{https://github.com/joenomiddlename/PStestR}.
+#'   vignette (i.e. run vignette('PSTestR')), or visit
+#'   \url{https://github.com/joenomiddlename/PStestR}.
 #'
 #' @docType package
 NULL

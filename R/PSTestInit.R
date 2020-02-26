@@ -38,8 +38,8 @@
 #' @return A named list for use with \code{\link{PSTestRun}}.
 #' @seealso \code{\link{PSTestRun}}
 #' @section Examples:
-#'   For detailed examples, see the vignette, or visit
-#'   \url{https://github.com/joenomiddlename/PStestR} for more details.
+#'   For detailed examples, see the vignette (i.e. run vignette('PSTestR')),
+#'   or visit \url{https://github.com/joenomiddlename/PStestR} for more details.
 PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                        poly=NULL, discrete_locations=NULL,
                        areal_polygons=NULL, areal_poly_observations=NULL,

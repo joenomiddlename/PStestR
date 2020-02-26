@@ -68,8 +68,8 @@
 #'   correlations and plot objects may also be returned.
 #' @seealso \code{\link{PSTestInit}}
 #' @section Examples:
-#'   For detailed examples, see the vignette, or visit
-#'   \url{https://github.com/joenomiddlename/PStestR} for more details.
+#'   For detailed examples, see the vignette (i.e. run vignette('PSTestR')),
+#'   or visit \url{https://github.com/joenomiddlename/PStestR} for more details.
 PSTestRun <-
   function(proc_dat,
            formula,

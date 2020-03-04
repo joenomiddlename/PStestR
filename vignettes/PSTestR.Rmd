@@ -45,7 +45,7 @@ library(doParallel)
 library(foreach)
 library(ggplot2)
 library(mgcv)
-library(PSTestR)
+library(PStestR)
 
 # set seed
 set.seed(12345)
@@ -86,7 +86,7 @@ class(window_poly)
 
 Here, we see an increased sampling intensity in the top right hand corner of the study region (as defined by the square polygon). The size of the marks, as indicated by the radius of the plotted bubbles, are also larger in this region. This is clear evidence of positive preferential sampling.
 
-Now we move onto creating an object suitable for the `PSTestR` package by running `PSTestInit`. We specify that we want 10,000 points to be uniformly placed within the study region defined by window_poly. We will use these locations later for predicting our latent field/process and covariates over. 
+Now we move onto creating an object suitable for the `PStestR` package by running `PSTestInit`. We specify that we want 10,000 points to be uniformly placed within the study region defined by window_poly. We will use these locations later for predicting our latent field/process and covariates over. 
 
 ```{r, echo=T}
 test_spat_dat <- PSTestInit(type='spatial', discrete = F,     
@@ -269,7 +269,7 @@ On the other hand, the *n_3* sampling locations of the second follow-up survey a
 
 The goal of this analysis is to see if the follow-up studies were preferentially sampled.   
 
-First, we must format the data into the correct form required for the `PSTestR` package. This is achieved once again by the function `PSTestInit`. Along with the `positions` argument, a `times` argument is now also required for specifying which discrete time period each observation belongs to. Furthermore, the `covariates` and `formula` arguments may be unique for each time period, or fixed across all time periods.
+First, we must format the data into the correct form required for the `PStestR` package. This is achieved once again by the function `PSTestInit`. Along with the `positions` argument, a `times` argument is now also required for specifying which discrete time period each observation belongs to. Furthermore, the `covariates` and `formula` arguments may be unique for each time period, or fixed across all time periods.
 
 For spatio-temporal data, the `PSTestInit` function is used similarly as before with the geostatistical data. The major differences here are with the following arguments:
 
@@ -355,7 +355,7 @@ Thus, for our example it is apparent that the null is rejected only for the seco
 
 Each of the test statistics should be of similar variability, otherwise the studentized MAD envelope test or the directional quantile MAD envelope test should be used (see Mrkvicka et.al 2017). This is because the power to detect a departure from the null could be severely diminished if a specific test statistic is very highly variable relative to the others.
 
-Although the PSTestR package doesn't currently implement these envelope tests, by adding an argument `return_rho_vals=T` to `PSTestRun`, the Monte Carlo rho values will be returned, allowing such tests to be computed manually. The Monte Carlo rho values are stored in the entry `Monte_Carlo_rho_values` and the observed rho values in the data are stored in `test_rho`
+Although the PStestR package doesn't currently implement these envelope tests, by adding an argument `return_rho_vals=T` to `PSTestRun`, the Monte Carlo rho values will be returned, allowing such tests to be computed manually. The Monte Carlo rho values are stored in the entry `Monte_Carlo_rho_values` and the observed rho values in the data are stored in `test_rho`
 
 ```{r, echo=T, message=F, error=F, warning=F}
 manual_test <- PSTestRun(test_st_dat, formula = ~ 1, 
@@ -396,13 +396,13 @@ library(doParallel)
 library(foreach)
 library(ggplot2)
 library(mgcv)
-library(PSTestR)
+library(PStestR)
 
 # set seed
 set.seed(12345)
 
 ## load areal data
-discrete_data <- PSTestR:::sample_discrete_data#readRDS('../data/sample_discrete_data.rds')
+discrete_data <- PStestR:::sample_discrete_data#readRDS('../data/sample_discrete_data.rds')
 list2env(discrete_data,.GlobalEnv)
 #source('PSTestInit')
 ```
@@ -420,7 +420,7 @@ sp::spplot(PS_data)
 
 Here, we see a potential clustering of areal units in the South Western corner. The values of the latent field appear especially high here. Thus positive PS may be present.
 
-Now we move onto creating an object suitable for the `PSTestR` package by running `PSTestInit`. 
+Now we move onto creating an object suitable for the `PStestR` package by running `PSTestInit`. 
 
 ```{r, echo=T}
 test_spat_dat <- PSTestInit(type='spatial', discrete = T,
@@ -545,13 +545,13 @@ library(doParallel)
 library(foreach)
 library(ggplot2)
 library(mgcv)
-library(PSTestR)
+library(PStestR)
 
 # set seed
 set.seed(12345)
 
 ## load areal data
-discrete_st_data <- PSTestR:::sample_st_discrete_data#readRDS('../data/sample_st_discrete_data.rds')
+discrete_st_data <- PStestR:::sample_st_discrete_data#readRDS('../data/sample_st_discrete_data.rds')
 list2env(discrete_st_data,.GlobalEnv)
 #source('PSTestInit')
 ```
@@ -583,7 +583,7 @@ par(mfrow=c(1,1))
 
 For the first four time steps, we see a potential clustering of areal units where the latent field takes large values. Thus positive PS may be present. In the final time step, no obvious clustering can be seen.
 
-Now we move onto creating an object suitable for the `PSTestR` package by running `PSTestInit`. 
+Now we move onto creating an object suitable for the `PStestR` package by running `PSTestInit`. 
 
 ```{r, echo=T}
 test_st_dat <- PSTestInit(type='spacetime', discrete = T,

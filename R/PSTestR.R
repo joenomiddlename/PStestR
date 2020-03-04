@@ -1,8 +1,8 @@
-#' @name PSTestR
-#' @title PSTestR: A package for testing for preferential sampling in
+#' @name PStestR
+#' @title PStestR: A package for testing for preferential sampling in
 #'   spatio-temporal data.
 #'
-#' @description The PSTestR has two important functions:
+#' @description The PStestR has two important functions:
 #' \code{\link{PSTestInit}} and \code{\link{PSTestRun}}
 #'
 #' @section PSTestInit function:
@@ -13,8 +13,8 @@
 #'   test. It takes as input the data created by the helper function
 #'   PSTestInit.
 #'
-#'   For detailed examples about how to use the PSTestR, consult the
-#'   vignette (i.e. run vignette('PSTestR')), or visit
+#'   For detailed examples about how to use the PStestR, consult the
+#'   vignette (i.e. run vignette('PStestR')), or visit
 #'   \url{https://github.com/joenomiddlename/PStestR}.
 #'
 #' @docType package

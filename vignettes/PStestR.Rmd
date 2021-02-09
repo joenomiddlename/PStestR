@@ -105,10 +105,11 @@ Once the desired covariates and latent effect(s) have been estimated or projecte
 Returning to our example, for the time being we ignore the potential preferential sampling and fit a spatial regression model to the marks. We find a significant effect of a covariate called 'cov', and capture the residual spatial correlation with a Gaussian process. This Gaussian process is our estimate of the latent effect. Next, we obtain the covariate values and estimate the latent effect across the 10,000 points. We store these estimates in vectors `cov` and `latent_effect`. To convert `cov` and `latent_effect` to `SpatialPixelsDataFrame` objects, simply do the following:
 
 ```{r include=FALSE}
-cov <- runif(10000)
+n_pred <- length(test_spat_dat$prediction_df$x)
+cov <- runif(n_pred)
 latent_effect <- int_function(x=test_spat_dat$prediction_df$x,
                      y=test_spat_dat$prediction_df$y)
-cov2 <- latent_effect + rnorm(n=10000, mean = 0, sd=100)
+cov2 <- latent_effect + rnorm(n=n_pred, mean = 0, sd=100)
 cov2 <- SpatialPixelsDataFrame(test_spat_dat$prediction_grid,
                                data=data.frame(cov2=cov2))
 ```

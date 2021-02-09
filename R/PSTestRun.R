@@ -138,6 +138,44 @@ PSTestRun <-
       latent_effect <- methods::as(latent_converted, 'im')
     }
 
+    # Check that the latent_effect completely covers the study region
+    if(proc_dat$discrete == F){
+      if(proc_dat$type == 'spatial') {
+        if(!is.subset.owin(proc_dat$observed_locations$window, Window(latent_effect)))
+        {
+          stop('The latent effect needs redefining on a set of pixels that fully
+           covers the spatial region. Try using the pixels generated from PSTestInit.')
+        }
+      }
+      if(proc_dat$type == 'spacetime') {
+
+        if(class(latent_effect) == 'list')
+        {
+          for(i in 1:length(latent_effect))
+          {
+            # convert to im
+            latent_converted <- methods::as(latent_effect[[i]], 'SpatialGridDataFrame')
+            latent_effect[[i]] <- methods::as(latent_converted, 'im')
+            if(!is.subset.owin(proc_dat$observed_locations$window, Window(latent_effect[[i]])))
+            {
+              stop('One of the latent effects needs redefining on a set of pixels that fully
+           covers the spatial region. Try using the pixels generated from PSTestInit.')
+            }
+          }
+        }
+        if(class(latent_effect) != 'list')
+        {
+          # convert to im
+          latent_converted <- methods::as(latent_effect, 'SpatialGridDataFrame')
+          latent_effect <- methods::as(latent_converted, 'im')
+          if(!is.subset.owin(proc_dat$observed_locations$window, Window(latent_effect)))
+          {
+            stop('The latent effect needs redefining on a set of pixels that fully
+           covers the spatial region. Try using the pixels generated from PSTestInit.')
+          }
+        }
+      }
+    }
     # Check all covariates are in correct format
     if(!is.null(covariates) & proc_dat$type == 'spatial' & proc_dat$discrete == F)
     {
@@ -426,13 +464,13 @@ PSTestRun <-
         covariates_full$R = 0
 
         ind_poly <- proc_dat$areal_poly_observations
-          # which(duplicated(rbind(
-          #   cbind(proc_dat$prediction_df$x, proc_dat$prediction_df$y),
-          #   cbind(
-          #     proc_dat$observed_locations$x,
-          #     proc_dat$observed_locations$y
-          #   )
-          # ), fromLast = T)[1:length(proc_dat$prediction_df$x)])
+        # which(duplicated(rbind(
+        #   cbind(proc_dat$prediction_df$x, proc_dat$prediction_df$y),
+        #   cbind(
+        #     proc_dat$observed_locations$x,
+        #     proc_dat$observed_locations$y
+        #   )
+        # ), fromLast = T)[1:length(proc_dat$prediction_df$x)])
 
         #browser()
 
@@ -1075,7 +1113,7 @@ PSTestRun <-
               ggplot2::xlab('K Nearest Neighbours') +
               ggplot2::ylab('Rank Correlation') +
               ggplot2::ggtitle('Rank correlations between the latent field and the K-NN distance',
-                      subtitle='The Monte Carlo global envelope is shown as a greyscale band')
+                               subtitle='The Monte Carlo global envelope is shown as a greyscale band')
 
             print(plot_NN)
           }
@@ -1287,11 +1325,11 @@ PSTestRun <-
         if(simultaneous == F & return_rho_vals==F)
         {
           pointwise_empirical_pvalues_time[count,,] <- PSTestRun(proc_dat = subset_proc_dat, formula = formula_st, interaction = interaction,
-                                            latent_effect = latent_subset,
-                                            covariates = covariates_subset,
-                                            residual_tests=residual_tests, M=M, no_nn = no_nn,
-                                            parallel = parallel, ncores=ncores,
-                                            return_model = return_model)$pointwise_empirical_pvalues
+                                                                 latent_effect = latent_subset,
+                                                                 covariates = covariates_subset,
+                                                                 residual_tests=residual_tests, M=M, no_nn = no_nn,
+                                                                 parallel = parallel, ncores=ncores,
+                                                                 return_model = return_model)$pointwise_empirical_pvalues
         }
         if(simultaneous == T | return_rho_vals==T)
         {
@@ -1392,7 +1430,7 @@ PSTestRun <-
             ggplot2::xlab('Time') +
             ggplot2::ylab('Nearest Neigbours K') +
             ggplot2::ggtitle('Rank correlations between latent field and the K-NN distances vs. time and K',
-                    subtitle = 'Only values of the tests falling outside the global envelope are shown') +
+                             subtitle = 'Only values of the tests falling outside the global envelope are shown') +
             ggplot2::annotate("rect", xmin = plot_band_NN$time-0.25, xmax = plot_band_NN$time+0.25, ymin = plot_band_NN$NN-0.25, ymax = plot_band_NN$NN+0.25, colour='white', alpha=1, fill='white') +
             ggplot2::annotate("text", x = plot_band_NN$time, y = plot_band_NN$NN, label = round(plot_band_NN$rho,2))
 

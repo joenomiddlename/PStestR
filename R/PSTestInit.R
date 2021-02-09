@@ -134,8 +134,10 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
     {
       # Finally, generate a regular grid of points over the polygon
       # This will be returned as a dataframe for predicting latent effects over
+      # Need to buffer the region to ensure the grid is defined over entire region
       poly_temp <- as(poly_converted, 'SpatialPolygons')
-      grid_temp <- sp::makegrid(poly_temp, n = n_prediction)
+      buff_size <- max(apply(poly_temp@bbox,1,diff))*0.01
+      grid_temp <- sp::makegrid(rgeos::gBuffer(poly_temp,width=buff_size), n = n_prediction)
       grid_temp <- sp::SpatialPoints(grid_temp)
       grid_temp <- sp::SpatialPixels(grid_temp)
       grid_temp2 <- as(grid_temp,'SpatialPolygons')
@@ -232,7 +234,8 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
       # Finally, generate a regular grid of points over the polygon
       # This will be returned as a dataframe for predicting latent effects over
       poly_temp <- as(poly_converted, 'SpatialPolygons')
-      grid_temp <- sp::makegrid(poly_temp, n = n_prediction)
+      buff_size <- max(apply(poly_temp@bbox,1,diff))*0.01
+      grid_temp <- sp::makegrid(rgeos::gBuffer(poly_temp,width=buff_size), n = n_prediction)
       grid_temp <- sp::SpatialPoints(grid_temp)
       grid_temp <- sp::SpatialPixels(grid_temp)
       grid_temp2 <- as(grid_temp,'SpatialPolygons')

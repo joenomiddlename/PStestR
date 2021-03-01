@@ -12,7 +12,7 @@ vignette: >
 ## Contents 
 
 1. Testing for Preferential Sampling in Geostatistical Datasets [click here](#section1)
-1. Testing for Preferenital Sampling in Continuous Spatio-temporal Datasets [click here](#section2)
+1. Testing for Preferential Sampling in Continuous Spatio-temporal Datasets [click here](#section2)
 1. Testing for Preferential Sampling in Discrete Spatial Datasets [click here](#section3)
 1. Testing for Preferential Sampling in Discrete Spatio-temporal Datasets [click here](#section4)
 
@@ -181,11 +181,11 @@ spat_test_2 <- PSTestRun(test_spat_dat, formula = ~ 1,
 
 spat_test_2$critical_deviance
 spat_test_2$global_test_NN
-spat_test_2$pointwise_tests
+#spat_test_2$pointwise_tests
 
 ```
 
-Here it is shown in the plot that the observed rank correlation lies outside the Monte Carlo rank envelope (i.e. simultaneous confidence band) for all values of K nearest neighbours tested. Thus we reject the null hypothesis at the 5% level once again. The critical value of the test is returned as the named entry `critical_deviance`. If the absolute value of the observed rank correlation exceeds this value at any value of K, then the test is rejected. For convenience, the result of the test for each value of K is returned as the vector of logicals `global_test_NN`. A value of `TRUE` at *any* of the K values denotes the test is rejected. Finally, the empirical p-values of the pointwise tests are also computed, and are found in the entry `$pointwise_tests`.
+Here it is shown in the plot that the observed rank correlation lies outside the Monte Carlo rank envelope (i.e. simultaneous confidence band) for all values of K nearest neighbours tested. Thus we reject the null hypothesis at the 5% level once again. The critical value of the test is returned as the named entry `critical_deviance`. If the absolute value of the observed rank correlation exceeds this value at any value of K, then the test is rejected. For convenience, the result of the test for each value of K is returned as the vector of logicals `global_test_NN`. A value of `TRUE` at *any* of the K values denotes the test is rejected. 
 
 Now we repeat the same test, but this time include the covariate `cov`. Remember, `cov` is the `SpatialPixelsDataFrame` object created earlier. To include `cov` in our null model, we create a named list containing all the covariates we desire to include in our model. Then we add this list as an argument to the function `PSTestRun`. Finally, we add the desired covariates, in their desired functional form to the right hand side of the `formula` argument. Note that higher order terms and interactions can be added as per usual.
 
@@ -202,7 +202,7 @@ spat_test_3 <- PSTestRun(test_spat_dat, formula = ~ cov,
 
 spat_test_3$critical_deviance
 spat_test_3$global_test_NN
-spat_test_3$pointwise_tests
+#spat_test_3$pointwise_tests
 ```
 Thus, once again the test is rejected at the 5% significance level. Thus, while a statistically significant effect of covariate `cov` was found (point estimate 0.738 (SE 0.31)), it fails to explain away the preferential sampling.
 
@@ -228,12 +228,14 @@ spat_test_4 <- PSTestRun(test_spat_dat, formula = ~ cov + cov2,
 
 spat_test_4$critical_deviance
 spat_test_4$global_test_NN
-spat_test_4$pointwise_tests
+#spat_test_4$pointwise_tests
 ```
 
-As before with `cov`, a statistically significant linear effect of `cov2` is found on the log intensity of the point pattern. Here, a set of seemingly conflicting results appear. On the one hand, the simultaneous test at the 5% significance level fails to reject the null hypothesis. This provides evidence that the covariate `cov2` has sufficiently explained away the preferential sampling. However, looking at the results from the pointwise tests, it is clear that the test would have been rejected at the 5% significance level for each value of K<5 tested. However, once again, the issue of multiple testing must be considered and thus the significance level of the pointwise tests are only valid if the value of K is chosen beforehand. This example does however provide insight into a fundamental property of this test; a single pointwise test can have a higher power to detect PS than the simultaneous test.
+As before with `cov`, a statistically significant linear effect of `cov2` is found on the log intensity of the point pattern. The simultaneous test at the 5% significance level rejects the null hypothesis for K > 3. Thus we find insufficient evidence that the covariate `cov2` has sufficiently explained away the preferential sampling. 
 
-## Testing for Preferenital Sampling in Continuous Spatio-temporal Datasets {#section2}
+If we were to look at the results from the pointwise tests, the test would have been rejected at the 5% significance level for each value of K<5 tested. However, once again, the issue of multiple testing must be considered and thus the significance level of the pointwise tests are only valid if the value of K is chosen beforehand. A single pointwise test can have a higher power to detect PS than the simultaneous test if a 'good' value of K is chosen beforehand.
+
+## Testing for Preferential Sampling in Continuous-space Spatio-temporal Datasets {#section2}
 
 ### Data Preparation 
 
@@ -333,7 +335,7 @@ st_test <- PSTestRun(test_st_dat, formula = ~ 1,
 st_test
 ```
 
-Thus the pointwise tests reject the null hypothesis of no preferential sampling at the 5% signficance level for the second follow-up dataset for K > 1 and fail to reject the null hypothesis for any K for the first follow-up dataset. Next, we perform the simultaneous test, which computes the simultaneous confidence band over all values of K and over all times.
+Thus the pointwise tests reject the null hypothesis of no preferential sampling at the 5% signficance level for the second follow-up dataset for K = 3 and K = 10 and fail to reject the null hypothesis for any K for the first follow-up dataset. Next, we perform the simultaneous test, which computes the simultaneous confidence band over all values of K and over all times.
 
 ```{r, echo=TRUE, fig.width=7, fig.height=5 }
 st_test2 <- PSTestRun(test_st_dat, formula = ~ 1, 
@@ -350,13 +352,13 @@ st_test2$critical_deviance
 
 The plot above is presented as follows. On the y-axis are the number of nearest neighbours K, over which the distances have been averaged over. On the x-axis is time, indicating the different follow-up studies in our example. The numbers in the white boxes are the observed rank correlations in the data for each value of K and time. Finally, the colour behind the white boxes denotes the value of the observed rank correlation, with no colour indicating that the observed rank correlation falls within the Monte Carlo approximated simultaneous confidence band.  
 
-Thus, for our example it is apparent that the null is rejected only for the second follow-up dataset, for K > 4. These are the only cells with colour behind them. Thus we fail to find evidence of preferential sampling in the first follow-up study and find evidence at the 5% significance level that PS did occur in the second follow-up study.
+Thus, for our example it is apparent that the null is rejected only for the second follow-up dataset, for K = 10. These are the only cells with colour behind them. Thus we fail to find evidence of preferential sampling in the first follow-up study and find evidence at the 5% significance level that PS did occur in the second follow-up study.
 
 ## Things to consider when using the simultaneous tests
 
 Each of the test statistics should be of similar variability, otherwise the studentized MAD envelope test or the directional quantile MAD envelope test should be used (see Mrkvicka et.al 2017). This is because the power to detect a departure from the null could be severely diminished if a specific test statistic is very highly variable relative to the others.
 
-Although the PStestR package doesn't currently implement these envelope tests, by adding an argument `return_rho_vals=T` to `PSTestRun`, the Monte Carlo rho values will be returned, allowing such tests to be computed manually. The Monte Carlo rho values are stored in the entry `Monte_Carlo_rho_values` and the observed rho values in the data are stored in `test_rho`
+Although the PStestR package doesn't currently implement these modified envelope tests, by adding an argument `return_rho_vals=T` to `PSTestRun`, the Monte Carlo rho values will be returned, allowing such tests to be computed manually. The Monte Carlo rho values are stored in the entry `Monte_Carlo_rho_values` and the observed rho values in the data are stored in `test_rho`
 
 ```{r, echo=T, message=F, error=F, warning=F}
 manual_test <- PSTestRun(test_st_dat, formula = ~ 1, 
@@ -372,7 +374,7 @@ names(manual_test)
 ```
 
 
-## Testing for Preferenital Sampling in Discrete Spatial Datasets {#section3}
+## Testing for Preferential Sampling in Discrete Spatial Datasets {#section3}
 
 ### Data Preparation 
 
@@ -518,7 +520,7 @@ spat_test_2
 ```
 Whilst the covariate `cov` was indeed found to be significantly associated with the binary selection process, the evidence of preferential sampling remains. Thus, we have failed to find a sufficient set of covariates to adequately explain away the PS we see in the data.
 
-## Testing for Preferenital Sampling in Discrete Spatio-temporal Datasets {#section4}
+## Testing for Preferential Sampling in Discrete Spatio-temporal Datasets {#section4}
 
 For discrete spatio-temporal data, the process is very similar.
 

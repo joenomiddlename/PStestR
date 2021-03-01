@@ -1,0 +1,1 @@
+These are the scripts used to generate the simulation study results. Note that the simulations prior to the discrete case were conducted prior to the PStestR package being made. This explains the large number of lines of code. The simulation study which tested the discrete case used the package code and so was greatly streamlined.

@@ -23,6 +23,7 @@ Suggests:
     knitr (>= 1.23),
     sf (>= 0.8-1),
     rgdal (>= 1.4-8)
+    rmarkdown (>= 2.7)
 VignetteBuilder:
     knitr
 Authors@R: person("Joe", "Watson", email = "joe.watson@stat.ubc.ca",

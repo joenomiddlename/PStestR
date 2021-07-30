@@ -121,7 +121,7 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
       }
 
       # convert to owin object
-      poly_converted <- spatstat::as.owin(poly)
+      poly_converted <- spatstat.geom::as.owin(poly)
     }
 
     # Convert positions to ppp object
@@ -222,7 +222,7 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
       }
 
       # convert to owin object
-      poly_converted <- spatstat::as.owin(poly)
+      poly_converted <- spatstat.geom::as.owin(poly)
     }
 
     # extract the vector of unique discrete times

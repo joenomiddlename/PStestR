@@ -37,7 +37,7 @@ element gives the formula for the time step.}
 \item{interaction}{is an object of spatstat class "interact" describing the point
 process interaction structure, can also be a function that makes such an object,
 or NULL indicating that a Poisson process (stationary or nonstationary) should
-be fitted. See the help file for \code{\link[spatstat:ppm]{ppm}} from the
+be fitted. See the help file for \code{\link[spatstat.core:ppm]{ppm}} from the
 \code{spatstat} package for more details.}
 
 \item{M}{specifies the number of Monte Carlo samples to take}
@@ -47,7 +47,7 @@ windows, tessellations or single numbers when spatial. When spacetime, covariate
 is either a named list of lists (one per timestep), or a list of entries of covariates
 constant through time. When covariates change over time, name the lists with the
 number that points the list of covariates to the correct time. See the help file for
-\code{\link[spatstat:ppm]{ppm}} from the \code{spatstat} package for allowed types
+\code{\link[spatstat.core:ppm]{ppm}} from the \code{spatstat} package for allowed types
 of covariates. When discrete==T, covariates is a data.frame object, in both the
 spatial and spacetime setting.}
 
@@ -70,7 +70,7 @@ distance over. Results of the tests of all values K=1:no_nn are returned.}
 \item{residual_tests}{is a logical argument specifying if the rank correlation
 of the smoothed raw HPP and model residuals should be computed.}
 
-\item{sigma, leaveoneout}{are additional arguments for the \code{\link[spatstat:density.ppp]{density}}
+\item{sigma, leaveoneout}{are additional arguments for the \code{\link[spatstat.core:density.ppp]{density}}
 function in spatstat.}
 
 \item{fix_n}{is a logical stating if the sample size should be fixed in the

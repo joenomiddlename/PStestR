@@ -20,7 +20,7 @@
 #' @param interaction is an object of spatstat class "interact" describing the point
 #'   process interaction structure, can also be a function that makes such an object,
 #'   or NULL indicating that a Poisson process (stationary or nonstationary) should
-#'   be fitted. See the help file for \code{\link[spatstat:ppm]{ppm}} from the
+#'   be fitted. See the help file for \code{\link[spatstat.core:ppm]{ppm}} from the
 #'   \code{spatstat} package for more details.
 #' @param M specifies the number of Monte Carlo samples to take
 #' @param covariates is a list when discrete==F, whose entries are images, functions,
@@ -28,7 +28,7 @@
 #'   is either a named list of lists (one per timestep), or a list of entries of covariates
 #'   constant through time. When covariates change over time, name the lists with the
 #'   number that points the list of covariates to the correct time. See the help file for
-#'   \code{\link[spatstat:ppm]{ppm}} from the \code{spatstat} package for allowed types
+#'   \code{\link[spatstat.core:ppm]{ppm}} from the \code{spatstat} package for allowed types
 #'   of covariates. When discrete==T, covariates is a data.frame object, in both the
 #'   spatial and spacetime setting.
 #' @param latent_effect is the latent effect of interest. When discrete==F, it needs
@@ -46,7 +46,7 @@
 #'   distance over. Results of the tests of all values K=1:no_nn are returned.
 #' @param residual_tests is a logical argument specifying if the rank correlation
 #'   of the smoothed raw HPP and model residuals should be computed.
-#' @param sigma,leaveoneout are additional arguments for the \code{\link[spatstat:density.ppp]{density}}
+#' @param sigma,leaveoneout are additional arguments for the \code{\link[spatstat.core:density.ppp]{density}}
 #'   function in spatstat.
 #' @param fix_n is a logical stating if the sample size should be fixed in the
 #'   Monte Carlo samples to value observed in the data.
@@ -141,7 +141,7 @@ PSTestRun <-
     # Check that the latent_effect completely covers the study region
     if(proc_dat$discrete == F){
       if(proc_dat$type == 'spatial') {
-        if(!is.subset.owin(proc_dat$observed_locations$window, Window(latent_effect)))
+        if(!spatstat.geom::is.subset.owin(proc_dat$observed_locations$window, spatstat.geom::Window(latent_effect)))
         {
           stop('The latent effect needs redefining on a set of pixels that fully
            covers the spatial region. Try using the pixels generated from PSTestInit.')
@@ -156,7 +156,7 @@ PSTestRun <-
             # convert to im
             latent_converted <- methods::as(latent_effect[[i]], 'SpatialGridDataFrame')
             latent_effect[[i]] <- methods::as(latent_converted, 'im')
-            if(!is.subset.owin(proc_dat$observed_locations$window, Window(latent_effect[[i]])))
+            if(!spatstat.geom::is.subset.owin(proc_dat$observed_locations$window, spatstat.geom::Window(latent_effect[[i]])))
             {
               stop('One of the latent effects needs redefining on a set of pixels that fully
            covers the spatial region. Try using the pixels generated from PSTestInit.')
@@ -168,7 +168,7 @@ PSTestRun <-
           # convert to im
           latent_converted <- methods::as(latent_effect, 'SpatialGridDataFrame')
           latent_effect <- methods::as(latent_converted, 'im')
-          if(!is.subset.owin(proc_dat$observed_locations$window, Window(latent_effect)))
+          if(!spatstat.geom::is.subset.owin(proc_dat$observed_locations$window, spatstat.geom::Window(latent_effect)))
           {
             stop('The latent effect needs redefining on a set of pixels that fully
            covers the spatial region. Try using the pixels generated from PSTestInit.')
@@ -240,7 +240,7 @@ PSTestRun <-
       {
         nn_dists <-
           apply(
-            spatstat::nndist(proc_dat$observed_locations, k = 1:no_nn),
+            spatstat.geom::nndist(proc_dat$observed_locations, k = 1:no_nn),
             1,
             FUN = function(x) {
               cumsum(x) / 1:no_nn
@@ -250,7 +250,7 @@ PSTestRun <-
       if (no_nn == 1)
       {
         nn_dists <-
-          matrix(spatstat::nndist(proc_dat$observed_locations, k = 1), nrow = 1)
+          matrix(spatstat.geom::nndist(proc_dat$observed_locations, k = 1), nrow = 1)
       }
 
       #browser()
@@ -301,7 +301,7 @@ PSTestRun <-
 
         ## Fit the point process model
         fit <-
-          suppressWarnings( spatstat::ppm(
+          suppressWarnings( spatstat.core::ppm(
             proc_dat$observed_locations,
             trend = formula,
             interaction = interaction,
@@ -315,7 +315,7 @@ PSTestRun <-
           # Fit homogeneous poisson process model
           #browser())
           fit_hpp <-
-            suppressWarnings( spatstat::ppm(
+            suppressWarnings( spatstat.core::ppm(
               proc_dat$observed_locations,
               trend = ~ 1,
               interaction = NULL,
@@ -331,9 +331,9 @@ PSTestRun <-
           #     covariates = covariates_full
           #   ) )
 
-          res_fit_hpp <- suppressWarnings( spatstat::residuals.ppm(fit_hpp) )
+          res_fit_hpp <- suppressWarnings( spatstat.core::residuals.ppm(fit_hpp) )
           res_smooth_hpp <-
-            spatstat::Smooth.msr(
+            spatstat.core::Smooth.msr(
               res_fit_hpp,
               edge = TRUE,
               at = "pixels",
@@ -347,12 +347,12 @@ PSTestRun <-
           {
             # extract the values of the smoothed residual measure at the dummy-zero locations from the quad scheme
             #browser())
-            dummy_hpp <- spatstat::quad.ppm(fit_hpp)$dummy
+            dummy_hpp <- spatstat.core::quad.ppm(fit_hpp)$dummy
 
             res_dummy_hpp <- res_smooth_hpp[i = dummy_hpp]
             nn_obs_dummy_hpp <-
               apply(
-                spatstat::crossdist(X = proc_dat$observed_locations, Y = dummy_hpp),
+                spatstat.geom::crossdist(X = proc_dat$observed_locations, Y = dummy_hpp),
                 1,
                 which.min
               )
@@ -368,9 +368,9 @@ PSTestRun <-
             }
           }
 
-          res_fit <- suppressWarnings( spatstat::residuals.ppm(fit) )
+          res_fit <- suppressWarnings( spatstat.core::residuals.ppm(fit) )
           res_smooth <-
-            spatstat::Smooth.msr(
+            spatstat.core::Smooth.msr(
               res_fit,
               edge = TRUE,
               at = "pixels",
@@ -384,12 +384,12 @@ PSTestRun <-
           {
             # extract the values of the smoothed residual measure at the dummy-zero locations from the quad scheme
             #browser())
-            dummy <- spatstat::quad.ppm(fit)$dummy
+            dummy <- spatstat.core::quad.ppm(fit)$dummy
 
             res_dummy <- res_smooth[i = dummy]
             nn_obs_dummy <-
               apply(
-                spatstat::crossdist(X = proc_dat$observed_locations, Y = dummy),
+                spatstat.geom::crossdist(X = proc_dat$observed_locations, Y = dummy),
                 1,
                 which.min
               )
@@ -432,7 +432,7 @@ PSTestRun <-
         ## Simulate from the model M times
         if (fix_n == T)
         {
-          sim_ppps_mod <- spatstat::rmh(model=fit,
+          sim_ppps_mod <- spatstat.core::rmh(model=fit,
                                         start=list(n.start=proc_dat$observed_locations$n),
                                         control=list(p=1),
                                         nsim=M,
@@ -440,7 +440,7 @@ PSTestRun <-
         }
         if (fix_n == F)
         {
-          sim_ppps_mod <- spatstat::rmh(model=fit,
+          sim_ppps_mod <- spatstat.core::rmh(model=fit,
                                         #start=list(n.start=n_samps),
                                         #control=list(p=1),
                                         nsim=M,
@@ -522,7 +522,7 @@ PSTestRun <-
                   replace = F
                 )
               sim_ppp_mod <-
-                spatstat::ppp(
+                spatstat.geom::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -537,7 +537,7 @@ PSTestRun <-
                   size = 1
                 ) == 1)
               sim_ppp_mod <-
-                spatstat::ppp(
+                spatstat.geom::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -571,7 +571,7 @@ PSTestRun <-
           {
             nn_dists_MC <-
               apply(
-                spatstat::nndist(sim_ppp_mod, k = 1:no_nn),
+                spatstat.geom::nndist(sim_ppp_mod, k = 1:no_nn),
                 1,
                 FUN = function(x) {
                   cumsum(x) / 1:no_nn
@@ -580,7 +580,7 @@ PSTestRun <-
           }
           if (no_nn == 1)
           {
-            nn_dists_MC <- matrix(spatstat::nndist(sim_ppp_mod, k = 1), nrow = 1)
+            nn_dists_MC <- matrix(spatstat.geom::nndist(sim_ppp_mod, k = 1), nrow = 1)
           }
 
           ## Evaluate the latent effect at the observed locations
@@ -624,7 +624,7 @@ PSTestRun <-
             # Fit homogeneous poisson process model
             #browser())
             fit_hpp_MC <-
-              suppressWarnings( spatstat::ppm(
+              suppressWarnings( spatstat.core::ppm(
                 sim_ppp_mod,
                 trend = ~ 1,
                 interaction = NULL,
@@ -633,16 +633,16 @@ PSTestRun <-
 
             ## Fit the inhomogeneous point process model
             fit_MC <-
-              suppressWarnings( spatstat::ppm(
+              suppressWarnings( spatstat.core::ppm(
                 sim_ppp_mod,
                 trend = formula,
                 interaction = interaction,
                 covariates = covariates_full
               ) )
 
-            res_fit_hpp_MC <- suppressWarnings( spatstat::residuals.ppm(fit_hpp_MC) )
+            res_fit_hpp_MC <- suppressWarnings( spatstat.core::residuals.ppm(fit_hpp_MC) )
             res_smooth_hpp_MC <-
-              spatstat::Smooth.msr(
+              spatstat.core::Smooth.msr(
                 res_fit_hpp_MC,
                 edge = TRUE,
                 at = "pixels",
@@ -656,12 +656,12 @@ PSTestRun <-
             {
               # extract the values of the smoothed residual measure at the dummy-zero locations from the quad scheme
               #browser())
-              dummy_hpp_MC <- spatstat::quad.ppm(fit_hpp_MC)$dummy
+              dummy_hpp_MC <- spatstat.core::quad.ppm(fit_hpp_MC)$dummy
 
               res_dummy_hpp_MC <-
                 res_smooth_hpp_MC[i = dummy_hpp_MC]
               nn_obs_dummy_hpp_MC <-
-                apply(spatstat::crossdist(X = sim_ppp_mod, Y = dummy_hpp_MC),
+                apply(spatstat.geom::crossdist(X = sim_ppp_mod, Y = dummy_hpp_MC),
                       1,
                       which.min)
               res_selected_hpp_MC <-
@@ -677,9 +677,9 @@ PSTestRun <-
               }
             }
 
-            res_fit_MC <- suppressWarnings( spatstat::residuals.ppm(fit_MC) )
+            res_fit_MC <- suppressWarnings( spatstat.core::residuals.ppm(fit_MC) )
             res_smooth_MC <-
-              spatstat::Smooth.msr(
+              spatstat.core::Smooth.msr(
                 res_fit_MC,
                 edge = TRUE,
                 at = "pixels",
@@ -692,11 +692,11 @@ PSTestRun <-
             {
               # extract the values of the smoothed residual measure at the dummy-zero locations from the quad scheme
               #browser())
-              dummy_MC <- spatstat::quad.ppm(fit_MC)$dummy
+              dummy_MC <- spatstat.core::quad.ppm(fit_MC)$dummy
 
               res_dummy_MC <- res_smooth_MC[i = dummy_MC]
               nn_obs_dummy_MC <-
-                apply(spatstat::crossdist(X = sim_ppp_mod, Y = dummy_MC),
+                apply(spatstat.geom::crossdist(X = sim_ppp_mod, Y = dummy_MC),
                       1,
                       which.min)
               res_selected_MC <- res_dummy_MC[nn_obs_dummy_MC]
@@ -767,7 +767,7 @@ PSTestRun <-
                 )
               sim_inds[[temp_ind]] <- sim_ind
               sim_ppps_mod[[temp_ind]] <-
-                spatstat::ppp(
+                spatstat.geom::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -783,7 +783,7 @@ PSTestRun <-
                 ) == 1)
               sim_inds[[temp_ind]] <- sim_ind
               sim_ppps_mod[[temp_ind]] <-
-                spatstat::ppp(
+                spatstat.geom::ppp(
                   x = proc_dat$prediction_df$x[sim_ind],
                   y = proc_dat$prediction_df$y[sim_ind],
                   window = proc_dat$observed_locations$window
@@ -829,7 +829,7 @@ PSTestRun <-
                              {
                                nn_dists_MC <-
                                  apply(
-                                   spatstat::nndist(sim_ppp_mod, k = 1:no_nn),
+                                   spatstat.geom::nndist(sim_ppp_mod, k = 1:no_nn),
                                    1,
                                    FUN = function(x) {
                                      cumsum(x) / 1:no_nn
@@ -838,7 +838,7 @@ PSTestRun <-
                              }
                              if (no_nn == 1)
                              {
-                               nn_dists_MC <- matrix(spatstat::nndist(sim_ppp_mod, k = 1), nrow = 1)
+                               nn_dists_MC <- matrix(spatstat.geom::nndist(sim_ppp_mod, k = 1), nrow = 1)
                              }
 
                              ## Evaluate the latent effect at the observed locations
@@ -881,7 +881,7 @@ PSTestRun <-
                                # Fit homogeneous poisson process model
                                #browser())
                                fit_hpp_MC <-
-                                 suppressWarnings( spatstat::ppm(
+                                 suppressWarnings( spatstat.core::ppm(
                                    sim_ppp_mod,
                                    trend = ~ 1,
                                    interaction = NULL,
@@ -890,7 +890,7 @@ PSTestRun <-
 
                                ## Fit the inhomogeneous point process model
                                fit_MC <-
-                                 suppressWarnings( spatstat::ppm(
+                                 suppressWarnings( spatstat.core::ppm(
                                    sim_ppp_mod,
                                    trend = formula,
                                    interaction = interaction,
@@ -898,9 +898,9 @@ PSTestRun <-
                                  ) )
 
                                res_fit_hpp_MC <-
-                                 suppressWarnings( spatstat::residuals.ppm(fit_hpp_MC) )
+                                 suppressWarnings( spatstat.core::residuals.ppm(fit_hpp_MC) )
                                res_smooth_hpp_MC <-
-                                 spatstat::Smooth.msr(
+                                 spatstat.core::Smooth.msr(
                                    res_fit_hpp_MC,
                                    edge = TRUE,
                                    at = "pixels",
@@ -915,12 +915,12 @@ PSTestRun <-
                                  # extract the values of the smoothed residual measure at the dummy-zero locations from the quad scheme
                                  #browser())
                                  dummy_hpp_MC <-
-                                   spatstat::quad.ppm(fit_hpp_MC)$dummy
+                                   spatstat.core::quad.ppm(fit_hpp_MC)$dummy
 
                                  res_dummy_hpp_MC <-
                                    res_smooth_hpp_MC[i = dummy_hpp_MC]
                                  nn_obs_dummy_hpp_MC <-
-                                   apply(spatstat::crossdist(X = sim_ppp_mod, Y = dummy_hpp_MC),
+                                   apply(spatstat.geom::crossdist(X = sim_ppp_mod, Y = dummy_hpp_MC),
                                          1,
                                          which.min)
                                  res_selected_hpp_MC <-
@@ -936,9 +936,9 @@ PSTestRun <-
                                  }
                                }
 
-                               res_fit_MC <- suppressWarnings( spatstat::residuals.ppm(fit_MC) )
+                               res_fit_MC <- suppressWarnings( spatstat.core::residuals.ppm(fit_MC) )
                                res_smooth_MC <-
-                                 spatstat::Smooth.msr(
+                                 spatstat.core::Smooth.msr(
                                    res_fit_MC,
                                    edge = TRUE,
                                    at = "pixels",
@@ -952,11 +952,11 @@ PSTestRun <-
                                {
                                  # extract the values of the smoothed residual measure at the dummy-zero locations from the quad scheme
                                  #browser())
-                                 dummy_MC <- spatstat::quad.ppm(fit_MC)$dummy
+                                 dummy_MC <- spatstat.core::quad.ppm(fit_MC)$dummy
 
                                  res_dummy_MC <- res_smooth_MC[i = dummy_MC]
                                  nn_obs_dummy_MC <-
-                                   apply(spatstat::crossdist(X = sim_ppp_mod, Y = dummy_MC),
+                                   apply(spatstat.geom::crossdist(X = sim_ppp_mod, Y = dummy_MC),
                                          1,
                                          which.min)
                                  res_selected_MC <-

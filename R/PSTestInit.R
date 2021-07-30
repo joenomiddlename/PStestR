@@ -151,7 +151,7 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
       prediction_df <- data.frame(x = grid@coords[,1],
                                   y = grid@coords[,2])
       # Convert positions to ppp object
-      positions_converted <- spatstat::ppp(x = positions$x, y = positions$y,
+      positions_converted <- spatstat.geom::ppp(x = positions$x, y = positions$y,
                                            window = poly_converted, checkdup = F)
 
       return(list(prediction_df = prediction_df,
@@ -170,9 +170,9 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
       if(!is.null(discrete_locations)){
         prediction_df <- data.frame(x = discrete_locations$x,
                                     y = discrete_locations$y)
-        poly_converted <- spatstat::owin(xrange=range(discrete_locations$x), yrange=range(discrete_locations$y))
+        poly_converted <- spatstat.geom::owin(xrange=range(discrete_locations$x), yrange=range(discrete_locations$y))
         # Convert positions to ppp object
-        positions_converted <- spatstat::ppp(x = positions$x, y = positions$y,
+        positions_converted <- spatstat.geom::ppp(x = positions$x, y = positions$y,
                                              window = poly_converted, checkdup = F)
       }
       if(is.null(discrete_locations)){
@@ -180,9 +180,9 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
         centroids <- rgeos::gCentroid(areal_polygons,byid=TRUE)
         prediction_df <- data.frame(x = centroids@coords[,1],
                                     y = centroids@coords[,2])
-        poly_converted <- spatstat::owin(xrange=range(centroids@coords[,1]), yrange=range(centroids@coords[,2]))
+        poly_converted <- spatstat.geom::owin(xrange=range(centroids@coords[,1]), yrange=range(centroids@coords[,2]))
         # Convert positions to ppp object
-        positions_converted <- spatstat::ppp(x = centroids@coords[areal_poly_observations,1],
+        positions_converted <- spatstat.geom::ppp(x = centroids@coords[areal_poly_observations,1],
                                              y = centroids@coords[areal_poly_observations,2],
                                              window = poly_converted, checkdup = F)
       }
@@ -249,7 +249,7 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
                                   y = rep(grid@coords[,2], times = no_unique_times),
                                   t = rep(unique_times, each = length(grid@coords[,1])))
       # Convert positions to ppp object
-      positions_converted <- spatstat::ppp(x = positions$x, y = positions$y,
+      positions_converted <- spatstat.geom::ppp(x = positions$x, y = positions$y,
                                            window = poly_converted, checkdup = F)
       return(list(prediction_df = prediction_df,
                   prediction_grid = grid,
@@ -281,9 +281,9 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
         prediction_df <- data.frame(x = rep(discrete_locations$x, times = no_unique_times),
                                     y = rep(discrete_locations$y, times = no_unique_times),
                                     t = rep(unique_times, each = length(discrete_locations$x)))
-        poly_converted <- spatstat::owin(xrange=range(discrete_locations$x), yrange=range(discrete_locations$y))
+        poly_converted <- spatstat.geom::owin(xrange=range(discrete_locations$x), yrange=range(discrete_locations$y))
         # Convert positions to ppp object
-        positions_converted <- spatstat::ppp(x = positions$x, y = positions$y,
+        positions_converted <- spatstat.geom::ppp(x = positions$x, y = positions$y,
                                              window = poly_converted, checkdup = F)
       }
       if(is.null(discrete_locations)){
@@ -291,9 +291,9 @@ PSTestInit <- function(type, discrete, positions=NULL, times=NULL,
         prediction_df <- data.frame(x = rep(centroids@coords[,1], times = no_unique_times),
                                     y = rep(centroids@coords[,2], times = no_unique_times),
                                     t = rep(unique_times, each = length(centroids@coords[,1])))
-        poly_converted <- spatstat::owin(xrange=range(centroids@coords[,1]), yrange=range(centroids@coords[,2]))
+        poly_converted <- spatstat.geom::owin(xrange=range(centroids@coords[,1]), yrange=range(centroids@coords[,2]))
         # Convert positions to ppp object
-        positions_converted <- spatstat::ppp(x = centroids@coords[areal_poly_observations,1],
+        positions_converted <- spatstat.geom::ppp(x = centroids@coords[areal_poly_observations,1],
                                              y = centroids@coords[areal_poly_observations,2],
                                              window = poly_converted, checkdup = F)
       }

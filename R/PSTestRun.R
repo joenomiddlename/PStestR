@@ -432,7 +432,7 @@ PSTestRun <-
         ## Simulate from the model M times
         if (fix_n == T)
         {
-          sim_ppps_mod <- spatstat.core::rmh(model=fit,
+          sim_ppps_mod <- spatstat.random::rmh(model=fit,
                                         start=list(n.start=proc_dat$observed_locations$n),
                                         control=list(p=1),
                                         nsim=M,
@@ -440,7 +440,7 @@ PSTestRun <-
         }
         if (fix_n == F)
         {
-          sim_ppps_mod <- spatstat.core::rmh(model=fit,
+          sim_ppps_mod <- spatstat.random::rmh(model=fit,
                                         #start=list(n.start=n_samps),
                                         #control=list(p=1),
                                         nsim=M,
